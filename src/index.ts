@@ -8,8 +8,7 @@ const bot = new LemmyBot({
     },
     instance: 'forum.basedcount.com',
     connection: {
-        minutesBeforeRetryConnection: 1,
-        secondsBetweenPolls: 5
+        secondsBetweenPolls: 2,
     },
     federation: 'local',    //Do not access content outside of the local server
     handlers: {
