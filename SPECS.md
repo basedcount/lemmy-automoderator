@@ -26,3 +26,17 @@ mod writes private message, check if writer is mod, then accept config. Store in
 
 ## Additional notes
 - All regex checks should have a blacklist mode (default) and a white list one (remove if it doesn't match the REGEX)
+
+## Handling configuration
+Handlers available:
+- post
+- comment
+- postReport
+- commentReport
+- mention
+
+split configuration, one table for each handler + one table grouping community with internal id (different from community id)
+replace communities array with query (function handlers)
+foreign key for handler tables: on delete cascade
+
++ table for shadowbanned / whitelisted users
