@@ -15,7 +15,7 @@ https://join-lemmy.org/api/classes/LemmyHttp.html
 mod writes private message, check if writer is mod, then accept config. Store in local sqlite database. If already saved, rewrite (drop existing, save new)
 ## Actions
 - mods can comment under post to remove, lock, pin
-- count the reports, remove after N reports
+<!-- - count the reports, remove after N reports -->
 - send "modmail": a private message to all moderators
 - reply to posts and comments (removal reason, post locked)
 - handle reports: automatically resolve reports for "whitelisted users", eg: bots, other mods, admins, ecc...
