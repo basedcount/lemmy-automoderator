@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import LemmyBot from 'lemmy-bot';
 import Database from 'better-sqlite3';
+import { setUpDb, addCommunity, getCommunity, updateCommunityConfig } from './db';
 
 const USERNAME = process.env.LEMMY_USERNAME || '';
 const PASSWORD = process.env.LEMMY_PASSWORD || '';
@@ -9,8 +10,6 @@ const DATABASE = 'db.sqlite3';
 
 const db = new Database(DATABASE);
 db.pragma('journal_mode = WAL');
-
-const communities = ['pcm'];    //Real implementation: store these in the local sqlite database
 
 if (USERNAME === '' || PASSWORD === '' || INSTANCE === '') {
     throw new Error('Undefined username, password or instance. Check your .env file.');
@@ -24,41 +23,46 @@ const bot = new LemmyBot({
     federation: 'local',
     handlers: {
         privateMessage: async ({
-            messageView: { private_message: { content }, creator: { id: creator_id } },
+            messageView: { private_message: { content }, creator: { id: creator_id, name } },
             botActions: { sendPrivateMessage, getCommunityId, isCommunityMod, getUserId },
             preventReprocess
         }) => {
             try {
-                const submittedName = content.split(/\r?\n|\r|\n/)[0];
+                console.log(`Message received from u/${name}`);
+                const message = content.split(/\r?\n|\r|\n/);
+                const submittedName = message[0];
                 const community_id = await getCommunityId({ instance: INSTANCE, name: submittedName });
-                if (community_id == null) {
+
+                if (community_id == null) {         //Check if the community exists
                     await sendPrivateMessage({ content: `No community named "${submittedName}" was found `, recipient_id: creator_id });
+                    console.log(`Denied: Unknown community: ${submittedName}`);
+                    return;
+                }
+
+                if (!await isCommunityMod({ person_id: creator_id, community_id })) {   //Check if the requester is a moderator
+                    await sendPrivateMessage({ content: `You aren't a moderator in "${submittedName}". Only moderators can edit a community's AutoMod configuration.`, recipient_id: creator_id });
+                    console.log(`Denied: User u/${submittedName} is not a mod in c/${submittedName}`);
                     return;
                 }
 
                 const own_id = await getUserId({ instance: INSTANCE, name: USERNAME }) as number;
-                if (!await isCommunityMod({ person_id: own_id, community_id })) {
+                if (!await isCommunityMod({ person_id: own_id, community_id })) {       //Check if the bot is among the mods
                     await sendPrivateMessage({ content: `This account is not a moderator in "${submittedName}". AutoMod can only be enabled in communities where it is a mod.`, recipient_id: creator_id });
+                    console.log(`Denied: AutoMod not activated in c/${submittedName}`);
                     return;
                 }
 
-                if (communities.includes(submittedName)) {
-                    if (!await isCommunityMod({ person_id: creator_id, community_id })) {
-                        await sendPrivateMessage({ content: `You aren't a moderator in "${submittedName}". Only moderators can edit a community's AutoMod configuration. `, recipient_id: creator_id });
-                        return;
-                    }
-                } else {
-                    communities.push(submittedName);
+                let communityDbId = getCommunity(db, submittedName, community_id);
 
-                    if (!await isCommunityMod({ person_id: creator_id, community_id })) {
-                        await sendPrivateMessage({ content: `You aren't a moderator in "${submittedName}". Only moderators can edit a community's AutoMod configuration. `, recipient_id: creator_id });
-                        return;
-                    }
+                if (communityDbId === null) {   //Check if the bot is already monitoring the community, if not add it to the database
+                    addCommunity(db, submittedName, community_id);
+                    communityDbId = getCommunity(db, submittedName, community_id) as number;
                 }
 
-                //Update configuration by writing in database
+                updateCommunityConfig(communityDbId, message[1]);  //Parse YAML and update the database configuration for the community
 
-                await sendPrivateMessage({ content: 'Configurations updated succesfully!', recipient_id: creator_id });
+                await sendPrivateMessage({ content: 'Configurations updated succesfully!', recipient_id: creator_id }); //Send confirmation message
+                console.log(`Approved: u/${name} changed the configuration of c/${submittedName}`);
             } catch (e) {
                 await sendPrivateMessage({ content: 'Error while parsing AutoMod configuration.', recipient_id: creator_id });
                 console.log(e);
@@ -66,6 +70,8 @@ const bot = new LemmyBot({
                 preventReprocess()
             }
         },
+
+        /*
 
         mention: async ({
             mentionView: { creator: { id }, community: { id: community_id }, comment: { content }, post: { id: post_id } },
@@ -135,7 +141,10 @@ const bot = new LemmyBot({
         }) => {
 
         },
+
+        */
     },
 });
 
+setUpDb(db);
 bot.start();
