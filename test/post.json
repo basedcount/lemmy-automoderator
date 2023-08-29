@@ -1,0 +1,11 @@
+{
+    "rule": "post",
+    "community": "pcm",
+    "field": "title",
+    "type": "exact",
+    "match": "ur ugly",
+    "whitelist": false,
+    "mod_exempt": true,
+    "message": "The RoboJanny doesn't like you",
+    "removal_reason": "arbitrary"
+}

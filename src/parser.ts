@@ -1,24 +1,90 @@
-import { readFileSync } from 'fs'; //TEMP
+import Ajv from 'ajv';
+import addFormats from 'ajv-formats';
 
-/*
-    TODO:
-    - acquire JSON (fs for testing, then string message)
-    - parse JSON
-    - check schema
-    - return TS mapped object
+// Load schemas
+import postSchema from './schemas/post.json';
+import commentSchema from './schemas/comment.json';
+import mentionSchema from './schemas/mention.json';
+import exceptionSchema from './schemas/exception.json';
+import communitySchema from './schemas/community.json';
 
-    - write a schema
-    - write TS interfaces
-*/
-
+// Parses a JSON document against the known schemas, returns the apropriate object
 export function parse(data: string) {
-    data = temp();
-    
-    const res = JSON.parse(data);
+    const ajv = new Ajv();
+    addFormats(ajv);
 
-    console.log(res);
+    const validatePost = ajv.compile(postSchema);
+    const validateComment = ajv.compile(commentSchema);
+    const validateMention = ajv.compile(mentionSchema);
+    const validateException = ajv.compile(exceptionSchema);
+    const validateCommunity = ajv.compile(communitySchema);
+
+    const jsonData = JSON.parse(data);
+
+    if (validatePost(jsonData)) {
+        console.log('Post');
+        return jsonData as unknown as Post;
+
+    } else if (validateComment(jsonData)) {
+        console.log('Comment');
+        return jsonData as unknown as Comment;
+
+    } else if (validateMention(jsonData)) {
+        console.log('Mention');
+        return jsonData as unknown as Mention;
+
+    } else if (validateException(jsonData)) {
+        console.log('Exception');
+        return jsonData as unknown as Exception;
+
+    } else if (validateCommunity(jsonData)) {
+        console.log('Exception');
+        return jsonData as unknown as Community;
+
+    } else {
+        throw new Error('Invalid schema');
+
+    }
 }
 
-function temp(): string {
-    return readFileSync('./automod.json', { encoding: 'utf-8' });
+export interface Post {
+    rule: "post"
+    community: string
+    field: "title" | "body" | "link"
+    match: string
+    type: "exact" | "regex"
+    whitelist: boolean
+    mod_exempt: boolean
+    message: string | null
+    removal_reason: string | null
+}
+
+export interface Comment {
+    rule: "comment"
+    community: string
+    match: string
+    type: "exact" | "regex"
+    whitelist: boolean
+    mod_exempt: boolean
+    message: string | null
+    removal_reason: string | null
+}
+
+export interface Mention {
+    rule: "mention"
+    command: string | null
+    action: "pin" | "lock"
+    community: string
+    message: string | null
+}
+
+export interface Exception {
+    rule: "exception"
+    community: string
+    user_name: string
+}
+
+export interface Community {
+    rule: "community"
+    community: number
 }

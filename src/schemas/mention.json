@@ -1,7 +1,14 @@
 {
-    "$schema": "http://json-schema.org/draft-04/schema#",
+    "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",
     "properties": {
+        "rule": {
+            "type": "string",
+            "const": "mention"
+        },
+        "community": {
+            "type": "string"
+        },
         "command": {
             "type": [
                 "string",
@@ -15,9 +22,6 @@
                 "lock"
             ]
         },
-        "community": {
-            "type": "string"
-        },
         "message": {
             "type": [
                 "string",
@@ -26,9 +30,10 @@
         }
     },
     "required": [
+        "rule",
+        "community",
         "command",
         "action",
-        "community_id",
         "message"
     ]
 }

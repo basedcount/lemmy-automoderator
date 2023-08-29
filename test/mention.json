@@ -1,0 +1,7 @@
+{
+    "rule": "mention",
+    "community": "pcm",
+    "command": "!pin",
+    "action": "pin",
+    "message": "fuck off"
+}

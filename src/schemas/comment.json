@@ -1,7 +1,14 @@
 {
-    "$schema": "http://json-schema.org/draft-04/schema#",
+    "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",
     "properties": {
+        "rule": {
+            "type": "string",
+            "const": "comment"
+        },
+        "community": {
+            "type": "string"
+        },
         "match": {
             "type": "string"
         },
@@ -32,6 +39,8 @@
         }
     },
     "required": [
+        "rule",
+        "community",
         "match",
         "type",
         "whitelist",

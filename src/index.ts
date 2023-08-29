@@ -3,6 +3,9 @@ import LemmyBot from 'lemmy-bot';
 import Database from 'better-sqlite3';
 import { setUpDb, addCommunity, getCommunity, updateCommunityConfig } from './db';
 
+import { readFileSync } from 'fs'; //TEMP
+
+
 const USERNAME = process.env.LEMMY_USERNAME || '';
 const PASSWORD = process.env.LEMMY_PASSWORD || '';
 const INSTANCE = process.env.LEMMY_INSTANCE || '';
@@ -28,6 +31,8 @@ const bot = new LemmyBot({
             preventReprocess
         }) => {
             try {
+                //TODO: change this logic. Parse first, get community from there. User message will only contain JSON
+
                 console.log(`Message received from u/${name}`);
                 const message = content.split(/\r?\n|\r|\n/);
                 const submittedName = message[0];
@@ -59,7 +64,7 @@ const bot = new LemmyBot({
                     communityDbId = getCommunity(db, submittedName, community_id) as number;
                 }
 
-                // await updateCommunityConfig(communityDbId, message.slice(1).join("\n"));  //Parse JSON and update the database configuration for the community
+                await updateCommunityConfig(communityDbId, message.slice(1).join("\n"));  //Parse JSON and update the database configuration for the community
 
                 await sendPrivateMessage({ content: 'Configurations updated succesfully!', recipient_id: creator_id }); //Send confirmation message
                 console.log(`Approved: u/${name} changed the configuration of c/${submittedName}`);
@@ -148,4 +153,9 @@ const bot = new LemmyBot({
 
 // setUpDb(db);
 // bot.start();
-updateCommunityConfig(1, '');
+updateCommunityConfig(1, temp());
+
+
+function temp(): string {
+    return readFileSync('./test/mention.json').toString();
+}

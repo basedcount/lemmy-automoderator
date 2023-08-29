@@ -79,9 +79,15 @@ export function addCommunity(db: Database, name: string, id: number) {
     query.run(name, id);
 }
 
-//Parse YAML and update the database configuration for the community - TODO
+//Parse JSON and update the database configuration for the community - TODO
 export async function updateCommunityConfig(id: number, configText: string) {
     console.log('Updating community number', id, 'with the following config:');
 
-    await parse(configText);
+    try {
+        const res = parse(configText);
+
+        console.log(res);
+    } catch (e) {
+        console.log(e);
+    }
 }

@@ -1,0 +1,10 @@
+{
+    "rule": "comment",
+    "community": "pcm",
+    "match": "ur ugly",
+    "type": "exact",
+    "whitelist": false,
+    "mod_exempt": true,
+    "message": "The RoboJanny doesn't like you",
+    "removal_reason": "arbitrary"
+}
