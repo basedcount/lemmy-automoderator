@@ -1,4 +1,5 @@
 {
+    "$schema": "https://raw.githubusercontent.com/ornato-t/lemmy-automoderator/master/src/schemas/post.json",
     "rule": "post",
     "community": "pcm",
     "field": "title",
