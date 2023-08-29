@@ -1,4 +1,5 @@
 import { Database } from 'better-sqlite3';
+import { parse } from './parser';
 
 //Run the query creation tables if it's the first time the bot is being ran
 export function setUpDb(db: Database) {
@@ -8,26 +9,30 @@ export function setUpDb(db: Database) {
         name            TEXT,
         community_id    NUMBER
     );`;
-    //field: (title, body, link), type(regex/exact), message can be null
+    //field: (title, body, link), type(regex/exact), whitelist (bool, false by default), mod_exempt(bool, true by default), message can be null, removal reason (posted in modlog) can be null
     const postQuery = `
     CREATE TABLE IF NOT EXISTS automod_post (
-        field           TEXT,   
-        match           TEXT,
-        type            TEXT,
-        community_id    INTEGER,
-        whitelist       INTEGER NOT NULL,
-        message         TEXT,
+        field               TEXT,   
+        match               TEXT,
+        type                TEXT,
+        community_id        INTEGER,
+        whitelist_exempt    INTEGER NOT NULL,
+        mod_exempt          INTEGER NOT NULL,
+        message             TEXT,
+        reason              TEXT,
         PRIMARY KEY(field, match, community_id),
         FOREIGN KEY(community_id) REFERENCES automod_community(id)
     );`;
-    //type(regex/exact), message can be null
+    //type(regex/exact), whitelist (bool, false by default), mod_exempt(bool, true by default), message can be null, removal reason (posted in modlog) can be null
     const commentQuery = `
     CREATE TABLE IF NOT EXISTS automod_comment (
-        match           TEXT,
-        type            TEXT,
-        community_id    INTEGER,
-        whitelist       INTEGER NOT NULL,
-        message         TEXT,
+        match               TEXT,
+        type                TEXT,
+        community_id        INTEGER,
+        whitelist_exempt    INTEGER NOT NULL,
+        mod_exempt          INTEGER NOT NULL,
+        message             TEXT,
+        reason              TEXT,
         PRIMARY KEY(match, type, community_id),
         FOREIGN KEY(community_id) REFERENCES automod_community(id)
     );`;
@@ -76,7 +81,8 @@ export function addCommunity(db: Database, name: string, id: number) {
 }
 
 //Parse YAML and update the database configuration for the community - TODO
-export function updateCommunityConfig(id: number, configText: string) {
+export async function updateCommunityConfig(id: number, configText: string) {
     console.log('Updating community number', id, 'with the following config:');
-    console.log(configText);
+
+    await parse(configText);
 }

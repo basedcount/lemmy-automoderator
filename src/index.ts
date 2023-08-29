@@ -59,7 +59,7 @@ const bot = new LemmyBot({
                     communityDbId = getCommunity(db, submittedName, community_id) as number;
                 }
 
-                updateCommunityConfig(communityDbId, message[1]);  //Parse YAML and update the database configuration for the community
+                // await updateCommunityConfig(communityDbId, message.slice(1).join("\n"));  //Parse JSON and update the database configuration for the community
 
                 await sendPrivateMessage({ content: 'Configurations updated succesfully!', recipient_id: creator_id }); //Send confirmation message
                 console.log(`Approved: u/${name} changed the configuration of c/${submittedName}`);
@@ -146,5 +146,6 @@ const bot = new LemmyBot({
     },
 });
 
-setUpDb(db);
-bot.start();
+// setUpDb(db);
+// bot.start();
+updateCommunityConfig(1, '');
