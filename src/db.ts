@@ -40,17 +40,16 @@ export function setUpDb(db: Database) {
     const mentionQuery = `
     CREATE TABLE IF NOT EXISTS automod_mention (
         command         TEXT,
-        action          TEXT,
-        community_id    INTEGER,
+        action          TEXT NOT NULL,
+        community_id    INTEGER NOT NULL,
         message         TEXT,
         PRIMARY KEY(command, action, community_id),
         FOREIGN KEY(community_id) REFERENCES automod_community(id)
     );`;
-    //type(whitelist/blacklist)
+
     const exceptionQuery = `
     CREATE TABLE IF NOT EXISTS automod_exception (
         user_name       TEXT,
-        type            TEXT,
         community_id    INTEGER,
         PRIMARY KEY(user_name, type, community_id),
         FOREIGN KEY(community_id) REFERENCES automod_community(id)

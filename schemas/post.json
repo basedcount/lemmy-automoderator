@@ -1,0 +1,51 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "object",
+    "properties": {
+        "field": {
+            "type": "string",
+            "enum": [
+                "title",
+                "body",
+                "link"
+            ]
+        },
+        "match": {
+            "type": "string"
+        },
+        "type": {
+            "type": "string",
+            "enum": [
+                "exact",
+                "regex"
+            ]
+        },
+        "whitelist": {
+            "type": "boolean"
+        },
+        "mod_exempt": {
+            "type": "boolean"
+        },
+        "message": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "removal_reason": {
+            "type": [
+                "string",
+                "null"
+            ]
+        }
+    },
+    "required": [
+        "field",
+        "match",
+        "type",
+        "whitelist",
+        "mod_exempt",
+        "message",
+        "removal_reason"
+    ]
+}
