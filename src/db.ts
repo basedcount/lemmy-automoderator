@@ -84,18 +84,26 @@ export function addCommunity(db: Database, name: string, id: number) {
 
 /*  CONFIGURATION HANDLERS  */
 
-export function addPostRule(db: Database, rule: Post) {
+export function addPostRule(db: Database, rule: Post, community: number) {
+    const query = db.prepare(`INSERT INTO automod_post (field,match,type,community_id,whitelist_exempt,mod_exempt,message,reason) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
 
+    query.run(rule.field, rule.match, rule.type, community, rule.whitelist, rule.mod_exempt, rule.message, rule.removal_reason);
 }
 
-export function addCommentRule(db: Database, rule: Comment) {
+export function addCommentRule(db: Database, rule: Comment, community: number) {
+    const query = db.prepare(`INSERT INTO automod_comment (match,type,community_id,whitelist_exempt,mod_exempt,message,reason) VALUES (?, ?, ?, ?, ?, ?, ?)`);
 
+    query.run(rule.match, rule.type, community, rule.whitelist, rule.mod_exempt, rule.message, rule.removal_reason);
 }
 
-export function addMentionRule(db: Database, rule: Mention) {
+export function addMentionRule(db: Database, rule: Mention, community: number) {
+    const query = db.prepare(`INSERT INTO automod_mention (command,action,community_id,message) VALUES (?, ?, ?, ?)`);
 
+    query.run(rule.command, rule.action, community, rule.message);
 }
 
-export function addExceptionRule(db: Database, rule: Exception) {
+export function addExceptionRule(db: Database, rule: Exception, community: number) {
+    const query = db.prepare(`INSERT INTO automod_exception (user_name,community_id) VALUES (?, ?)`);
 
+    query.run(rule.user_name, rule.community);
 }

@@ -4,9 +4,6 @@ import Database from 'better-sqlite3';
 import { setUpDb, addCommunity, getCommunity, addPostRule, addCommentRule, addMentionRule, addExceptionRule } from './db';
 import { parse } from './parser';
 
-import { readFileSync } from 'fs'; //TEMP
-
-
 const USERNAME = process.env.LEMMY_USERNAME || '';
 const PASSWORD = process.env.LEMMY_PASSWORD || '';
 const INSTANCE = process.env.LEMMY_INSTANCE || '';
@@ -82,16 +79,16 @@ const bot = new LemmyBot({
                 /*  CHECKS PASSED, CONFIGURATION CAN BE INSERTED  */
 
                 if (userInput.rule === 'post') {
-                    addPostRule(db, userInput);
+                    addPostRule(db, userInput, communityInternalId);
                     console.log(`Success: post rule in c/${communityName}`);
                 } else if (userInput.rule === 'comment') {
-                    addCommentRule(db, userInput);
+                    addCommentRule(db, userInput, communityInternalId);
                     console.log(`Success: comment rule in c/${communityName}`);
                 } else if (userInput.rule === 'mention') {
-                    addMentionRule(db, userInput);
+                    addMentionRule(db, userInput, communityInternalId);
                     console.log(`Success: mention rule in c/${communityName}`);
                 } else if (userInput.rule === 'exception') {
-                    addExceptionRule(db, userInput);
+                    addExceptionRule(db, userInput, communityInternalId);
                     console.log(`Success: exception rule in c/${communityName}`);
                 }
 
@@ -187,6 +184,5 @@ const bot = new LemmyBot({
     },
 });
 
-// setUpDb(db);
-// bot.start();
-// RENAME_THIS(1, readFileSync('./test/mention.json').toString());
+setUpDb(db);
+bot.start();
