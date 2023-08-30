@@ -1,7 +1,8 @@
 import 'dotenv/config';
 import LemmyBot from 'lemmy-bot';
 import Database from 'better-sqlite3';
-import { setUpDb, addCommunity, getCommunity, updateCommunityConfig } from './db';
+import { setUpDb, addCommunity, getCommunity, addPostRule, addCommentRule, addMentionRule, addExceptionRule } from './db';
+import { parse } from './parser';
 
 import { readFileSync } from 'fs'; //TEMP
 
@@ -10,6 +11,8 @@ const USERNAME = process.env.LEMMY_USERNAME || '';
 const PASSWORD = process.env.LEMMY_PASSWORD || '';
 const INSTANCE = process.env.LEMMY_INSTANCE || '';
 const DATABASE = 'db.sqlite3';
+
+let ownId: number;
 
 const db = new Database(DATABASE);
 db.pragma('journal_mode = WAL');
@@ -31,71 +34,104 @@ const bot = new LemmyBot({
             preventReprocess
         }) => {
             try {
-                //TODO: change this logic. Parse first, get community from there. User message will only contain JSON
+                const userInput = parse(content);
+                const communityName = userInput.community;
+                const communityId = await getCommunityId({ instance: INSTANCE, name: communityName });
 
-                console.log(`Message received from u/${name}`);
-                const message = content.split(/\r?\n|\r|\n/);
-                const submittedName = message[0];
-                const community_id = await getCommunityId({ instance: INSTANCE, name: submittedName });
+                /*  PRELIMINARY CHECKS  */
 
-                if (community_id == null) {         //Check if the community exists
-                    await sendPrivateMessage({ content: `No community named "${submittedName}" was found `, recipient_id: creator_id });
-                    console.log(`Denied: Unknown community: ${submittedName}`);
+                //Does the community exist?
+                if (communityId == null) {
+                    await sendPrivateMessage({ content: `No community named "${communityName}" was found `, recipient_id: creator_id });
+                    console.log(`Denied: Unknown community: c/${communityName}`);
                     return;
                 }
 
-                if (!await isCommunityMod({ person_id: creator_id, community_id })) {   //Check if the requester is a moderator
-                    await sendPrivateMessage({ content: `You aren't a moderator in "${submittedName}". Only moderators can edit a community's AutoMod configuration.`, recipient_id: creator_id });
-                    console.log(`Denied: User u/${submittedName} is not a mod in c/${submittedName}`);
+                //Is the requester a moderator in the community?
+                if (!await isCommunityMod({ person_id: creator_id, community_id: communityId })) {
+                    await sendPrivateMessage({ content: `You aren't a moderator in "${communityName}". Only moderators can edit a community's AutoMod configuration.`, recipient_id: creator_id });
+                    console.log(`Denied: User u/${name} is not a mod in c/${communityName}`);
                     return;
                 }
 
-                const own_id = await getUserId({ instance: INSTANCE, name: USERNAME }) as number;
-                if (!await isCommunityMod({ person_id: own_id, community_id })) {       //Check if the bot is among the mods
-                    await sendPrivateMessage({ content: `This account is not a moderator in "${submittedName}". AutoMod can only be enabled in communities where it is a mod.`, recipient_id: creator_id });
-                    console.log(`Denied: AutoMod not activated in c/${submittedName}`);
+                //Only runs on startup, fetch the bot's ID
+                if (ownId === undefined) {
+                    ownId = await getUserId({ instance: INSTANCE, name: USERNAME }) as number;
+                }
+
+                /*
+                    NOTE:
+                    Currently there's no way of making an account a mod if it comments in the target community,
+                    so this check makes little sense.
+                    In the future, before failing, this should cause the bot to comment under the top post and reply with a link to said comment.
+                */
+
+                //Is the bot a moderator in the community?
+                if (!await isCommunityMod({ person_id: ownId, community_id: communityId })) {
+                    await sendPrivateMessage({ content: `AutoMod is not a moderator in "${communityName}". AutoMod can only be enabled in communities where it is a mod.`, recipient_id: creator_id });
+                    console.log(`Denied: AutoMod not activated in c/${communityName}`);
                     return;
                 }
 
-                let communityDbId = getCommunity(db, submittedName, community_id);
-
-                if (communityDbId === null) {   //Check if the bot is already monitoring the community, if not add it to the database
-                    addCommunity(db, submittedName, community_id);
-                    communityDbId = getCommunity(db, submittedName, community_id) as number;
+                //Check if the bot is already monitoring the community, if not add it to the database
+                let communityInternalId = getCommunity(db, communityName, communityId);
+                if (communityInternalId === null) {
+                    communityInternalId = addCommunity(db, communityName, communityId);
                 }
 
-                await updateCommunityConfig(communityDbId, message.slice(1).join("\n"));  //Parse JSON and update the database configuration for the community
+                /*  CHECKS PASSED, CONFIGURATION CAN BE INSERTED  */
 
-                await sendPrivateMessage({ content: 'Configurations updated succesfully!', recipient_id: creator_id }); //Send confirmation message
-                console.log(`Approved: u/${name} changed the configuration of c/${submittedName}`);
+                if (userInput.rule === 'post') {
+                    addPostRule(db, userInput);
+                    console.log(`Success: post rule in c/${communityName}`);
+                } else if (userInput.rule === 'comment') {
+                    addCommentRule(db, userInput);
+                    console.log(`Success: comment rule in c/${communityName}`);
+                } else if (userInput.rule === 'mention') {
+                    addMentionRule(db, userInput);
+                    console.log(`Success: mention rule in c/${communityName}`);
+                } else if (userInput.rule === 'exception') {
+                    addExceptionRule(db, userInput);
+                    console.log(`Success: exception rule in c/${communityName}`);
+                }
+
+                await sendPrivateMessage({ content: 'Rule added correctly.', recipient_id: creator_id });
             } catch (e) {
-                await sendPrivateMessage({ content: 'Error while parsing AutoMod configuration.', recipient_id: creator_id });
-                console.log(e);
+                if (e === 'invalid_schema') {
+                    await sendPrivateMessage({ content: 'The provided configuration is invalid. Make sure to consult the bot\'s documentation to avoid any mistakes.', recipient_id: creator_id });
+                    console.log('Error: user submitted an invalid schema');
+
+                } else {
+                    await sendPrivateMessage({ content: 'Error while processing AutoMod configuration. Please try again.', recipient_id: creator_id });
+                    console.log(e);
+
+                }
+
             } finally {
                 preventReprocess()
             }
         },
 
         /*
-
+    
         mention: async ({
             mentionView: { creator: { id }, community: { id: community_id }, comment: { content }, post: { id: post_id } },
             botActions: { createComment, featurePost, lockPost, isCommunityMod },
             preventReprocess
         }) => {
             if (!await isCommunityMod({ person_id: id, community_id })) return;
-
+    
             //Fetch all configs for the community (if len == 0 return)
-
+    
             //For each lock config, check if matches lock command and lock
-
+    
             //For each pin config, check if matches pin command and pin
-
+    
             //Don't reply if msg in config is empty
-
+    
             preventReprocess();
         },
-
+    
         comment: async ({
             commentView: {
                 comment: { id, content: body },
@@ -106,15 +142,15 @@ const bot = new LemmyBot({
             preventReprocess
         }) => {
             //Fetch all configs for the community (if len == 0 return)
-
+    
             //For each config line run regex check or exact check
-
+    
             //If shadowbannned user remove, if whitelisted user (first check) return
-
+    
             preventReprocess();
         },
-
-
+    
+    
         post: async ({
             postView: {
                 post: { id, body, name: title, url },
@@ -125,37 +161,32 @@ const bot = new LemmyBot({
             preventReprocess
         }) => {
             //Fetch all configs for the community (if len == 0 return)
-
+    
             //For each config line run check title, body, url
-
+    
             //If shadowbannned user remove, if whitelisted user (first check) return
-
+    
             preventReprocess();
         },
-
+    
         //Not really sure how and if these two can be handled
         //I probably can't count reports, but I can automatically approve anything posted by whitelisted users
         commentReport: async ({
-
+    
         }) => {
-
+    
         },
-
+    
         postReport: async ({
-
+    
         }) => {
-
+    
         },
-
+    
         */
     },
 });
 
 // setUpDb(db);
 // bot.start();
-updateCommunityConfig(1, temp());
-
-
-function temp(): string {
-    return readFileSync('./test/mention.json').toString();
-}
+// RENAME_THIS(1, readFileSync('./test/mention.json').toString());

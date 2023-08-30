@@ -16,16 +16,17 @@ mod writes private message, check if writer is mod, then accept config. Store in
 ## Actions
 - mods can comment under post to remove, lock, pin
 <!-- - count the reports, remove after N reports -->
-- send "modmail": a private message to all moderators
+<!-- - send "modmail": a private message to all moderators -->
 - reply to posts and comments (removal reason, post locked)
 - handle reports: automatically resolve reports for "whitelisted users", eg: bots, other mods, admins, ecc...
 - auto remove posts and comments depending on title / body / author's name contents
 - auto remove posts with links to blacklisted sites
-- automatically ban from community if from a "blacklisted" instance, if name matches REGEX...
+<!-- - automatically ban from community if from a "blacklisted" instance, if name matches REGEX... -->
 
 
 ## Additional notes
-- All regex checks should have a blacklist mode (default) and a white list one (remove if it doesn't match the REGEX)
+- All checks should have a white list mode to exempt users from the automod
+- At first it will be possible to add rules but not to remove them
 
 ## Handling configuration
 Handlers available:
@@ -39,4 +40,4 @@ split configuration, one table for each handler + one table grouping community w
 replace communities array with query (function handlers)
 foreign key for handler tables: on delete cascade
 
-+ table for shadowbanned / whitelisted users
++ table for whitelisted users

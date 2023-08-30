@@ -1,5 +1,5 @@
 import { Database } from 'better-sqlite3';
-import { parse } from './parser';
+import type { Post, Comment, Exception, Mention } from './parser';
 
 //Run the query creation tables if it's the first time the bot is being ran
 export function setUpDb(db: Database) {
@@ -77,17 +77,25 @@ export function getCommunity(db: Database, name: string, community_id: number): 
 export function addCommunity(db: Database, name: string, id: number) {
     const query = db.prepare(`INSERT INTO automod_community (name, community_id) VALUES (?, ?)`);
     query.run(name, id);
+
+    return getCommunity(db, name, id) as number;
 }
 
-//Parse JSON and update the database configuration for the community - TODO
-export async function updateCommunityConfig(id: number, configText: string) {
-    console.log('Updating community number', id, 'with the following config:');
 
-    try {
-        const res = parse(configText);
+/*  CONFIGURATION HANDLERS  */
 
-        console.log(res);
-    } catch (e) {
-        console.log(e);
-    }
+export function addPostRule(db: Database, rule: Post) {
+
+}
+
+export function addCommentRule(db: Database, rule: Comment) {
+
+}
+
+export function addMentionRule(db: Database, rule: Mention) {
+
+}
+
+export function addExceptionRule(db: Database, rule: Exception) {
+
 }

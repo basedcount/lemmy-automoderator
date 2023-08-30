@@ -36,7 +36,7 @@ export function parse(data: string) {
         return jsonData as unknown as Exception;
 
     } else {
-        throw new Error('Invalid schema');
+        throw new Error('invalid_schema');
 
     }
 }
