@@ -6,7 +6,6 @@ import postSchema from './schemas/post.json';
 import commentSchema from './schemas/comment.json';
 import mentionSchema from './schemas/mention.json';
 import exceptionSchema from './schemas/exception.json';
-import communitySchema from './schemas/community.json';
 
 // Parses a JSON document against the known schemas, returns the apropriate object
 export function parse(data: string) {
@@ -17,7 +16,6 @@ export function parse(data: string) {
     const validateComment = ajv.compile(commentSchema);
     const validateMention = ajv.compile(mentionSchema);
     const validateException = ajv.compile(exceptionSchema);
-    const validateCommunity = ajv.compile(communitySchema);
 
     const jsonData = JSON.parse(data);
 
@@ -36,10 +34,6 @@ export function parse(data: string) {
     } else if (validateException(jsonData)) {
         console.log('Exception');
         return jsonData as unknown as Exception;
-
-    } else if (validateCommunity(jsonData)) {
-        console.log('Exception');
-        return jsonData as unknown as Community;
 
     } else {
         throw new Error('Invalid schema');
@@ -84,7 +78,3 @@ export interface Exception {
     user_name: string
 }
 
-export interface Community {
-    rule: "community"
-    community: number
-}
