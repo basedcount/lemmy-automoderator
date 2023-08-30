@@ -51,7 +51,7 @@ export function setUpDb(db: Database) {
     CREATE TABLE IF NOT EXISTS automod_exception (
         user_name       TEXT,
         community_id    INTEGER,
-        PRIMARY KEY(user_name, type, community_id),
+        PRIMARY KEY(user_name, community_id),
         FOREIGN KEY(community_id) REFERENCES automod_community(id)
     );`;
 
@@ -87,13 +87,13 @@ export function addCommunity(db: Database, name: string, id: number) {
 export function addPostRule(db: Database, rule: Post, community: number) {
     const query = db.prepare(`INSERT INTO automod_post (field,match,type,community_id,whitelist_exempt,mod_exempt,message,reason) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
 
-    query.run(rule.field, rule.match, rule.type, community, rule.whitelist, rule.mod_exempt, rule.message, rule.removal_reason);
+    query.run(rule.field, rule.match, rule.type, community, bool2int(rule.whitelist), bool2int(rule.mod_exempt), rule.message, rule.removal_reason);
 }
 
 export function addCommentRule(db: Database, rule: Comment, community: number) {
     const query = db.prepare(`INSERT INTO automod_comment (match,type,community_id,whitelist_exempt,mod_exempt,message,reason) VALUES (?, ?, ?, ?, ?, ?, ?)`);
 
-    query.run(rule.match, rule.type, community, rule.whitelist, rule.mod_exempt, rule.message, rule.removal_reason);
+    query.run(rule.match, rule.type, community, bool2int(rule.whitelist), bool2int(rule.mod_exempt), rule.message, rule.removal_reason);
 }
 
 export function addMentionRule(db: Database, rule: Mention, community: number) {
@@ -105,5 +105,10 @@ export function addMentionRule(db: Database, rule: Mention, community: number) {
 export function addExceptionRule(db: Database, rule: Exception, community: number) {
     const query = db.prepare(`INSERT INTO automod_exception (user_name,community_id) VALUES (?, ?)`);
 
-    query.run(rule.user_name, rule.community);
+    query.run(rule.user_name, community);
+}
+
+//false -> 0; true -> 1. Just Javascript being Javascript
+function bool2int(value: boolean) {
+    return value as unknown as number + 0;
 }

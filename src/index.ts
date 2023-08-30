@@ -92,7 +92,7 @@ const bot = new LemmyBot({
                     console.log(`Success: exception rule in c/${communityName}`);
                 }
 
-                await sendPrivateMessage({ content: 'Rule added correctly.', recipient_id: creator_id });
+                await sendPrivateMessage({ content: 'Rule successfully added.', recipient_id: creator_id });
             } catch (e) {
                 if (e === 'invalid_schema') {
                     await sendPrivateMessage({ content: 'The provided configuration is invalid. Make sure to consult the bot\'s documentation to avoid any mistakes.', recipient_id: creator_id });

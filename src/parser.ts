@@ -20,19 +20,15 @@ export function parse(data: string) {
     const jsonData = JSON.parse(data);
 
     if (validatePost(jsonData)) {
-        console.log('Post');
         return jsonData as unknown as Post;
 
     } else if (validateComment(jsonData)) {
-        console.log('Comment');
         return jsonData as unknown as Comment;
 
     } else if (validateMention(jsonData)) {
-        console.log('Mention');
         return jsonData as unknown as Mention;
 
     } else if (validateException(jsonData)) {
-        console.log('Exception');
         return jsonData as unknown as Exception;
 
     } else {
@@ -77,4 +73,3 @@ export interface Exception {
     community: string
     user_name: string
 }
-
