@@ -1,5 +1,6 @@
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
+import type { Post, Comment, Mention } from './db'
 
 // Load schemas
 import postSchema from './schemas/post.json';
@@ -20,16 +21,16 @@ export function parse(data: string) {
     const jsonData = JSON.parse(data);
 
     if (validatePost(jsonData)) {
-        return jsonData as unknown as Post;
+        return jsonData as unknown as PostJson;
 
     } else if (validateComment(jsonData)) {
-        return jsonData as unknown as Comment;
+        return jsonData as unknown as CommentJson;
 
     } else if (validateMention(jsonData)) {
-        return jsonData as unknown as Mention;
+        return jsonData as unknown as MentionJson;
 
     } else if (validateException(jsonData)) {
-        return jsonData as unknown as Exception;
+        return jsonData as unknown as ExceptionJson;
 
     } else {
         throw new Error('invalid_schema');
@@ -37,7 +38,7 @@ export function parse(data: string) {
     }
 }
 
-export interface Post {
+export interface PostJson extends Post {
     rule: "post"
     community: string
     field: "title" | "body" | "link"
@@ -49,7 +50,7 @@ export interface Post {
     removal_reason: string | null
 }
 
-export interface Comment {
+export interface CommentJson extends Comment {
     rule: "comment"
     community: string
     match: string
@@ -60,7 +61,7 @@ export interface Comment {
     removal_reason: string | null
 }
 
-export interface Mention {
+export interface MentionJson extends Mention {
     rule: "mention"
     command: string | null
     action: "pin" | "lock"
@@ -68,7 +69,7 @@ export interface Mention {
     message: string | null
 }
 
-export interface Exception {
+export interface ExceptionJson {
     rule: "exception"
     community: string
     user_actor_id: string

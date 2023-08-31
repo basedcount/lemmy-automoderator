@@ -1,5 +1,5 @@
 import { Database } from 'better-sqlite3';
-import type { Post, Comment, Exception, Mention } from './parser';
+import type { PostJson, CommentJson, MentionJson, ExceptionJson } from './parser';
 
 //Run the query creation tables if it's the first time the bot is being ran
 export function setUpDb(db: Database) {
@@ -19,7 +19,7 @@ export function setUpDb(db: Database) {
         whitelist_exempt    INTEGER NOT NULL,
         mod_exempt          INTEGER NOT NULL,
         message             TEXT,
-        reason              TEXT,
+        removal_reason      TEXT,
         PRIMARY KEY(field, match, community_id),
         FOREIGN KEY(community_id) REFERENCES automod_community(id)
     );`;
@@ -32,7 +32,7 @@ export function setUpDb(db: Database) {
         whitelist_exempt    INTEGER NOT NULL,
         mod_exempt          INTEGER NOT NULL,
         message             TEXT,
-        reason              TEXT,
+        removal_reason      TEXT,
         PRIMARY KEY(match, type, community_id),
         FOREIGN KEY(community_id) REFERENCES automod_community(id)
     );`;
@@ -81,28 +81,27 @@ export function addCommunity(db: Database, name: string, id: number) {
     return getCommunity(db, name, id) as number;
 }
 
-
 /*  CONFIGURATION SETTERS  */
 
-export function addPostRule(db: Database, rule: Post, community: number) {
-    const query = db.prepare(`INSERT INTO automod_post (field,match,type,community_id,whitelist_exempt,mod_exempt,message,reason) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
+export function addPostRule(db: Database, rule: PostJson, community: number) {
+    const query = db.prepare(`INSERT INTO automod_post (field,match,type,community_id,whitelist_exempt,mod_exempt,message,removal_reason) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
 
     query.run(rule.field, rule.match, rule.type, community, bool2int(rule.whitelist), bool2int(rule.mod_exempt), rule.message, rule.removal_reason);
 }
 
-export function addCommentRule(db: Database, rule: Comment, community: number) {
-    const query = db.prepare(`INSERT INTO automod_comment (match,type,community_id,whitelist_exempt,mod_exempt,message,reason) VALUES (?, ?, ?, ?, ?, ?, ?)`);
+export function addCommentRule(db: Database, rule: CommentJson, community: number) {
+    const query = db.prepare(`INSERT INTO automod_comment (match,type,community_id,whitelist_exempt,mod_exempt,message,removal_reason) VALUES (?, ?, ?, ?, ?, ?, ?)`);
 
     query.run(rule.match, rule.type, community, bool2int(rule.whitelist), bool2int(rule.mod_exempt), rule.message, rule.removal_reason);
 }
 
-export function addMentionRule(db: Database, rule: Mention, community: number) {
+export function addMentionRule(db: Database, rule: MentionJson, community: number) {
     const query = db.prepare(`INSERT INTO automod_mention (command,action,community_id,message) VALUES (?, ?, ?, ?)`);
 
     query.run(rule.command, rule.action, community, rule.message);
 }
 
-export function addExceptionRule(db: Database, rule: Exception, community: number) {
+export function addExceptionRule(db: Database, rule: ExceptionJson, community: number) {
     const query = db.prepare(`INSERT INTO automod_exception (user_actor_id,community_id) VALUES (?, ?)`);
 
     query.run(rule.user_actor_id, community);
@@ -110,28 +109,105 @@ export function addExceptionRule(db: Database, rule: Exception, community: numbe
 
 /*  CONFIGURATION GETTERS  */
 
-export function getPostRules(db: Database, rule: Post, community: number) {
-    const query = db.prepare(``);
+export function getPostRules(db: Database, actorId: string, community: number, isModerator: boolean) {
+    let query;
 
-    query.run(rule.field, rule.match, rule.type, community, bool2int(rule.whitelist), bool2int(rule.mod_exempt), rule.message, rule.removal_reason);
+    if (isModerator) {
+        query = db.prepare(`
+        SELECT field, match, type, message, removal_reason
+        FROM automod_post
+        INNER JOIN automod_community ON automod_post.community_id = automod_community.id
+        WHERE automod_community.community_id = ?
+        AND automod_post.mod_exempt = 0
+        AND (
+            CASE
+                WHEN ? IN (
+                    SELECT user_actor_id
+                    FROM automod_exception
+                    WHERE community_id = automod_post.community_id
+                )
+                THEN automod_post.whitelist_exempt = 0
+                ELSE 1
+            END
+        )
+        `);
+    } else {
+        query = db.prepare(`
+        SELECT field, match, type, message, removal_reason
+        FROM automod_post
+        INNER JOIN automod_community ON automod_post.community_id = automod_community.id
+        WHERE automod_community.community_id = ?
+        AND (
+            CASE
+                WHEN ? IN (
+                    SELECT user_actor_id
+                    FROM automod_exception
+                    WHERE community_id = automod_post.community_id
+                )
+                THEN automod_post.whitelist_exempt = 0
+                ELSE 1
+            END
+        )
+        `);
+    }
+
+    return query.all(community, actorId) as Post[];
 }
 
-export function getCommentRules(db: Database, rule: Comment, community: number) {
-    const query = db.prepare(`INSERT INTO automod_comment (match,type,community_id,whitelist_exempt,mod_exempt,message,reason) VALUES (?, ?, ?, ?, ?, ?, ?)`);
+export function getCommentRules(db: Database, actorId: string, community: number, isModerator: boolean) {
+    let query;
 
-    query.run(rule.match, rule.type, community, bool2int(rule.whitelist), bool2int(rule.mod_exempt), rule.message, rule.removal_reason);
+    if (isModerator) {
+        query = db.prepare(`
+        SELECT match, type, message, removal_reason
+        FROM automod_comment
+        INNER JOIN automod_community ON automod_comment.community_id = automod_community.id
+        WHERE automod_community.community_id = ?
+        AND automod_comment.mod_exempt = 0
+        AND (
+            CASE
+                WHEN ? IN (
+                    SELECT user_actor_id
+                    FROM automod_exception
+                    WHERE community_id = automod_comment.community_id
+                )
+                THEN automod_comment.whitelist_exempt = 0
+                ELSE 1
+            END
+        )        
+        `);
+    } else {
+        query = db.prepare(`
+        SELECT match, type, message, removal_reason
+        FROM automod_comment
+        INNER JOIN automod_community ON automod_comment.community_id = automod_community.id
+        WHERE automod_community.community_id = ?
+        AND (
+            CASE
+                WHEN ? IN (
+                    SELECT user_actor_id
+                    FROM automod_exception
+                    WHERE community_id = automod_comment.community_id
+                )
+                THEN automod_comment.whitelist_exempt = 0
+                ELSE 1
+            END
+        )
+        `);
+    }
+
+    return query.all(community, actorId) as Comment[];
 }
 
-export function getMentionRules(db: Database, rule: Mention, community: number) {
-    const query = db.prepare(`INSERT INTO automod_mention (command,action,community_id,message) VALUES (?, ?, ?, ?)`);
+export function getMentionRules(db: Database, community: number) {
+    const query = db.prepare(`
+    SELECT command, action, message
+    FROM automod_mention
+    INNER JOIN automod_community ON automod_mention.community_id = automod_community.id
+    WHERE automod_community.community_id = ?
+    `);
 
-    query.run(rule.command, rule.action, community, rule.message);
-}
-
-export function getExceptionRules(db: Database, rule: Exception, community: number) {
-    const query = db.prepare(`INSERT INTO automod_exception (user_actor_id,community_id) VALUES (?, ?)`);
-
-    query.run(rule.user_actor_id, community);
+    return query.all(community) as Mention[];
 }
 
 /*  UTILITY  */
@@ -139,4 +215,27 @@ export function getExceptionRules(db: Database, rule: Exception, community: numb
 //false -> 0; true -> 1. Just Javascript being Javascript
 function bool2int(value: boolean) {
     return value as unknown as number + 0;
+}
+
+/*  TYPES  */
+
+export interface Post {
+    field: "title" | "body" | "link"
+    match: string
+    type: "exact" | "regex"
+    message: string | null
+    removal_reason: string | null
+}
+
+export interface Comment {
+    match: string
+    type: "exact" | "regex"
+    message: string | null
+    removal_reason: string | null
+}
+
+export interface Mention {
+    command: string | null
+    action: "pin" | "lock"
+    message: string | null
 }

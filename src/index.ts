@@ -1,7 +1,11 @@
 import 'dotenv/config';
 import LemmyBot from 'lemmy-bot';
 import Database from 'better-sqlite3';
-import { setUpDb, addCommunity, getCommunity, addPostRule, addCommentRule, addMentionRule, addExceptionRule } from './db';
+import {
+    setUpDb, addCommunity, getCommunity,
+    addPostRule, addCommentRule, addMentionRule, addExceptionRule,
+    getPostRules, getCommentRules, getMentionRules
+} from './db';
 import { parse } from './parser';
 
 const USERNAME = process.env.LEMMY_USERNAME || '';
@@ -180,5 +184,8 @@ const bot = new LemmyBot({
     },
 });
 
-setUpDb(db);
-bot.start();
+// setUpDb(db);
+// bot.start();
+console.log('\nPost:\n', getPostRules(db, 'Nerd02', 3, true));
+console.log('\nComment:\n', getCommentRules(db, 'Nerd02', 3, true));
+console.log('\nMention:\n', getMentionRules(db, 3));
