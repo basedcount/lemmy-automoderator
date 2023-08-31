@@ -184,7 +184,7 @@ const bot = new LemmyBot({
     },
 });
 
-// setUpDb(db);
+setUpDb(db);
 // bot.start();
 console.log('\nPost:\n', getPostRules(db, 'Nerd02', 3, true));
 console.log('\nComment:\n', getCommentRules(db, 'Nerd02', 3, true));
