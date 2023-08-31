@@ -1,12 +1,12 @@
 {
     "$schema": "https://raw.githubusercontent.com/ornato-t/lemmy-automoderator/master/src/schemas/post.json",
     "rule": "post",
-    "community": "pcm",
+    "community": "announcements",
     "field": "title",
     "type": "exact",
-    "match": "ur ugly",
-    "whitelist": false,
-    "mod_exempt": true,
-    "message": "The RoboJanny doesn't like you",
-    "removal_reason": "arbitrary"
+    "match": "spoiling my favourite anime",
+    "whitelist": true,
+    "mod_exempt": false,
+    "message": "Heh",
+    "removal_reason": "Heheh"
 }

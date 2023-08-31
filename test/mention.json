@@ -1,7 +1,7 @@
 {
     "$schema": "https://raw.githubusercontent.com/ornato-t/lemmy-automoderator/master/src/schemas/mention.json",
     "rule": "mention",
-    "community": "pcm",
+    "community": "announcements",
     "command": "!pin",
     "action": "pin",
     "message": "fuck off"

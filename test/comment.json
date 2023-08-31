@@ -1,7 +1,7 @@
 {
     "$schema": "https://raw.githubusercontent.com/ornato-t/lemmy-automoderator/master/src/schemas/comment.json",
     "rule": "comment",
-    "community": "pcm",
+    "community": "announcements",
     "match": "ur ugly",
     "type": "exact",
     "whitelist": false,
