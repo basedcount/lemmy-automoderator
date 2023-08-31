@@ -26,7 +26,7 @@ const bot = new LemmyBot({
     federation: 'local',
     handlers: {
         privateMessage: async ({
-            messageView: { private_message: { content }, creator: { id: creator_id, name } },
+            messageView: { private_message: { content }, creator: { id: creatorId, name } },
             botActions: { sendPrivateMessage, getCommunityId, isCommunityMod, getUserId },
             preventReprocess
         }) => {
@@ -39,14 +39,14 @@ const bot = new LemmyBot({
 
                 //Does the community exist?
                 if (communityId == null) {
-                    await sendPrivateMessage({ content: `No community named "${communityName}" was found `, recipient_id: creator_id });
+                    await sendPrivateMessage({ content: `No community named "${communityName}" was found `, recipient_id: creatorId });
                     console.log(`Denied: Unknown community: c/${communityName}`);
                     return;
                 }
 
                 //Is the requester a moderator in the community?
-                if (!await isCommunityMod({ person_id: creator_id, community_id: communityId })) {
-                    await sendPrivateMessage({ content: `You aren't a moderator in "${communityName}". Only moderators can edit a community's AutoMod configuration.`, recipient_id: creator_id });
+                if (!await isCommunityMod({ person_id: creatorId, community_id: communityId })) {
+                    await sendPrivateMessage({ content: `You aren't a moderator in "${communityName}". Only moderators can edit a community's AutoMod configuration.`, recipient_id: creatorId });
                     console.log(`Denied: User u/${name} is not a mod in c/${communityName}`);
                     return;
                 }
@@ -65,7 +65,7 @@ const bot = new LemmyBot({
 
                 //Is the bot a moderator in the community?
                 if (!await isCommunityMod({ person_id: ownId, community_id: communityId })) {
-                    await sendPrivateMessage({ content: `AutoMod is not a moderator in "${communityName}". AutoMod can only be enabled in communities where it is a mod.`, recipient_id: creator_id });
+                    await sendPrivateMessage({ content: `AutoMod is not a moderator in "${communityName}". AutoMod can only be enabled in communities where it is a mod.`, recipient_id: creatorId });
                     console.log(`Denied: AutoMod not activated in c/${communityName}`);
                     return;
                 }
@@ -92,14 +92,14 @@ const bot = new LemmyBot({
                     console.log(`Success: exception rule in c/${communityName}`);
                 }
 
-                await sendPrivateMessage({ content: 'Rule successfully added.', recipient_id: creator_id });
+                await sendPrivateMessage({ content: 'Rule successfully added.', recipient_id: creatorId });
             } catch (e) {
                 if (e === 'invalid_schema') {
-                    await sendPrivateMessage({ content: 'The provided configuration is invalid. Make sure to consult the bot\'s documentation to avoid any mistakes.', recipient_id: creator_id });
+                    await sendPrivateMessage({ content: 'The provided configuration is invalid. Make sure to consult the bot\'s documentation to avoid any mistakes.', recipient_id: creatorId });
                     console.log('Error: user submitted an invalid schema');
 
                 } else {
-                    await sendPrivateMessage({ content: 'Error while processing AutoMod configuration. Please try again.', recipient_id: creator_id });
+                    await sendPrivateMessage({ content: 'Error while processing AutoMod configuration. Please try again.', recipient_id: creatorId });
                     console.log(e);
 
                 }
@@ -109,78 +109,74 @@ const bot = new LemmyBot({
             }
         },
 
-        /*
-    
         mention: async ({
-            mentionView: { creator: { id }, community: { id: community_id }, comment: { content }, post: { id: post_id } },
+            mentionView: { creator: { id }, community: { id: communityId }, comment: { content }, post: { id: postId } },
             botActions: { createComment, featurePost, lockPost, isCommunityMod },
             preventReprocess
         }) => {
-            if (!await isCommunityMod({ person_id: id, community_id })) return;
-    
+            if (!await isCommunityMod({ person_id: id, community_id: communityId })) return;
+
             //Fetch all configs for the community (if len == 0 return)
-    
+
             //For each lock config, check if matches lock command and lock
-    
+
             //For each pin config, check if matches pin command and pin
-    
+
             //Don't reply if msg in config is empty
-    
+
             preventReprocess();
         },
-    
+
         comment: async ({
             commentView: {
                 comment: { id, content: body },
-                community: { name: community_name },
-                creator: { name, instance_id }
+                community: { id: communityId },
+                creator: { actor_id: actorId }
             },
             botActions: { createComment, removeComment },
             preventReprocess
         }) => {
             //Fetch all configs for the community (if len == 0 return)
-    
+
             //For each config line run regex check or exact check
-    
-            //If shadowbannned user remove, if whitelisted user (first check) return
-    
+
+            //If whitelisted user (first check) return
+
             preventReprocess();
         },
-    
-    
+
+
         post: async ({
             postView: {
                 post: { id, body, name: title, url },
-                community: { name: community_name },
-                creator: { name, instance_id }
+                community: { id: communityId },
+                creator: { actor_id: actorId }
             },
             botActions: { createComment, removePost },
             preventReprocess
         }) => {
             //Fetch all configs for the community (if len == 0 return)
-    
+
             //For each config line run check title, body, url
-    
-            //If shadowbannned user remove, if whitelisted user (first check) return
-    
+
+            //If whitelisted user (first check) return
+
             preventReprocess();
         },
-    
+
         //Not really sure how and if these two can be handled
         //I probably can't count reports, but I can automatically approve anything posted by whitelisted users
         commentReport: async ({
-    
+
         }) => {
-    
+
         },
-    
+
         postReport: async ({
-    
+
         }) => {
-    
+
         },
-    
-        */
     },
 });
 

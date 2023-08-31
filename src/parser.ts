@@ -71,5 +71,5 @@ export interface Mention {
 export interface Exception {
     rule: "exception"
     community: string
-    user_name: string
+    user_actor_id: string
 }

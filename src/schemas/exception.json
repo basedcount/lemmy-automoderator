@@ -9,13 +9,13 @@
         "community": {
             "type": "string"
         },
-        "user_name": {
+        "user_actor_id": {
             "type": "string"
         }
     },
     "required": [
         "rule",
         "community",
-        "user_name"
+        "user_actor_id"
     ]
 }
