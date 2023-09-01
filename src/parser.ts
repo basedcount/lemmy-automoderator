@@ -63,7 +63,7 @@ export interface CommentJson extends Comment {
 
 export interface MentionJson extends Mention {
     rule: "mention"
-    command: string | null
+    command: string
     action: "pin" | "lock"
     community: string
     message: string | null

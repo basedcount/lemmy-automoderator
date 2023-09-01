@@ -109,6 +109,7 @@ export function addExceptionRule(db: Database, rule: ExceptionJson, community: n
 
 /*  CONFIGURATION GETTERS  */
 
+//Whitelist exceptions and moderator exceptions are handled by this function. The caller only has to pass the correct actor_id and the result of an isCommunityModerator() function
 export function getPostRules(db: Database, actorId: string, community: number, isModerator: boolean) {
     let query;
 
@@ -154,6 +155,7 @@ export function getPostRules(db: Database, actorId: string, community: number, i
     return query.all(community, actorId) as Post[];
 }
 
+//Whitelist exceptions and moderator exceptions are handled by this function. The caller only has to pass the correct actor_id and the result of an isCommunityModerator() function
 export function getCommentRules(db: Database, actorId: string, community: number, isModerator: boolean) {
     let query;
 
@@ -221,14 +223,14 @@ function bool2int(value: boolean) {
 
 export interface Post {
     field: "title" | "body" | "link"
-    match: string
+    match: string | RegExp
     type: "exact" | "regex"
     message: string | null
     removal_reason: string | null
 }
 
 export interface Comment {
-    match: string
+    match: string | RegExp
     type: "exact" | "regex"
     message: string | null
     removal_reason: string | null

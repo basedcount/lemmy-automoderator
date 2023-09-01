@@ -145,16 +145,34 @@ const bot = new LemmyBot({
             commentView: {
                 comment: { id, content: body },
                 community: { id: communityId },
-                creator: { actor_id: actorId }
+                post: { id: postId },
+                creator: { actor_id: actorId, id: personId }
             },
-            botActions: { createComment, removeComment },
+            botActions: { createComment, removeComment, isCommunityMod },
             preventReprocess
         }) => {
-            //Fetch all configs for the community (if len == 0 return)
+            const isPosterMod = await isCommunityMod({ community_id: communityId, person_id: personId });
+            const rules = getCommentRules(db, actorId, communityId, isPosterMod);
 
-            //For each config line run regex check or exact check
+            for (const rule of rules) {
+                if (rule.type === 'exact' && body.includes(rule.match as string)) {
+                    removeComment({ comment_id: id, reason: rule.removal_reason !== null ? rule.removal_reason : '' });
 
-            //If whitelisted user (first check) return
+                    if (rule.message !== null) {
+                        createComment({ post_id: postId, content: rule.message });
+                    }
+
+                    break;
+                } else if (rule.type === 'regex' && (rule.match as RegExp).test(body)) {
+                    removeComment({ comment_id: id, reason: rule.removal_reason !== null ? rule.removal_reason : '' });
+
+                    if (rule.message !== null) {
+                        createComment({ post_id: postId, content: rule.message });
+                    }
+
+                    break;
+                }
+            }
 
             preventReprocess();
         },
