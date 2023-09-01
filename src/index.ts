@@ -156,7 +156,7 @@ const bot = new LemmyBot({
 
             for (const rule of rules) {
                 if (rule.type === 'exact' && body.includes(rule.match as string)) {
-                    removeComment({ comment_id: id, reason: rule.removal_reason !== null ? rule.removal_reason : '' });
+                    removeComment({ comment_id: id, reason: rule.removal_reason !== null ? rule.removal_reason : undefined });
 
                     if (rule.message !== null) {
                         createComment({ post_id: postId, content: rule.message });
@@ -164,7 +164,7 @@ const bot = new LemmyBot({
 
                     break;
                 } else if (rule.type === 'regex' && (rule.match as RegExp).test(body)) {
-                    removeComment({ comment_id: id, reason: rule.removal_reason !== null ? rule.removal_reason : '' });
+                    removeComment({ comment_id: id, reason: rule.removal_reason !== null ? rule.removal_reason : undefined });
 
                     if (rule.message !== null) {
                         createComment({ post_id: postId, content: rule.message });
@@ -177,21 +177,46 @@ const bot = new LemmyBot({
             preventReprocess();
         },
 
-
         post: async ({
             postView: {
                 post: { id, body, name: title, url },
                 community: { id: communityId },
-                creator: { actor_id: actorId }
+                creator: { actor_id: actorId, id: personId }
             },
-            botActions: { createComment, removePost },
+            botActions: { createComment, removePost, isCommunityMod },
             preventReprocess
         }) => {
-            //Fetch all configs for the community (if len == 0 return)
+            const isPosterMod = await isCommunityMod({ community_id: communityId, person_id: personId });
+            const rules = getPostRules(db, actorId, communityId, isPosterMod);
 
-            //For each config line run check title, body, url
+            for (const rule of rules) {
+                //Field to be checked: body | url | title
+                const field = (() => {
+                    if (rule.field === 'body') return body;
+                    else if (rule.field === 'link') return url;
+                    if (rule.field === 'title') return title;
+                })();
 
-            //If whitelisted user (first check) return
+                if (field !== undefined) {
+                    if (rule.type === 'exact' && field.includes(rule.match as string)) {
+                        removePost({ post_id: id, reason: rule.removal_reason !== null ? rule.removal_reason : undefined });
+
+                        if (rule.message !== null) {
+                            createComment({ post_id: id, content: rule.message });
+                        }
+
+                        break;
+                    } else if (rule.type === 'regex' && (rule.match as RegExp).test(field)) {
+                        removePost({ post_id: id, reason: rule.removal_reason !== null ? rule.removal_reason : undefined });
+
+                        if (rule.message !== null) {
+                            createComment({ post_id: id, content: rule.message });
+                        }
+
+                        break;
+                    }
+                }
+            }
 
             preventReprocess();
         },
