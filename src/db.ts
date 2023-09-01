@@ -39,7 +39,7 @@ export function setUpDb(db: Database) {
     //action(pin/lock), message can be null
     const mentionQuery = `
     CREATE TABLE IF NOT EXISTS automod_mention (
-        command         TEXT,
+        command         TEXT NOT NULL,
         action          TEXT NOT NULL,
         community_id    INTEGER NOT NULL,
         message         TEXT,
@@ -235,7 +235,7 @@ export interface Comment {
 }
 
 export interface Mention {
-    command: string | null
+    command: string
     action: "pin" | "lock"
     message: string | null
 }

@@ -114,19 +114,29 @@ const bot = new LemmyBot({
         },
 
         mention: async ({
-            mentionView: { creator: { id }, community: { id: communityId }, comment: { content }, post: { id: postId } },
+            mentionView: { creator: { id }, community: { id: communityId }, comment: { content, id: commentId }, post: { id: postId } },
             botActions: { createComment, featurePost, lockPost, isCommunityMod },
             preventReprocess
         }) => {
             if (!await isCommunityMod({ person_id: id, community_id: communityId })) return;
 
-            //Fetch all configs for the community (if len == 0 return)
+            const rules = getMentionRules(db, communityId);
 
-            //For each lock config, check if matches lock command and lock
+            for (const rule of rules) {
+                if (content.includes(rule.command)) {
+                    if (rule.action === 'lock') {
+                        lockPost({ locked: true, post_id: postId });
+                    } else if (rule.action === 'pin') {
+                        featurePost({ feature_type: 'Community', featured: true, post_id: postId });
+                    }
 
-            //For each pin config, check if matches pin command and pin
+                    if (rule.message !== null) {
+                        await createComment({ content: rule.message, post_id: postId, parent_id: commentId });
+                    }
 
-            //Don't reply if msg in config is empty
+                    break;
+                }
+            }
 
             preventReprocess();
         },
@@ -185,7 +195,4 @@ const bot = new LemmyBot({
 });
 
 setUpDb(db);
-// bot.start();
-console.log('\nPost:\n', getPostRules(db, 'Nerd02', 3, true));
-console.log('\nComment:\n', getCommentRules(db, 'Nerd02', 3, true));
-console.log('\nMention:\n', getMentionRules(db, 3));
+bot.start();
