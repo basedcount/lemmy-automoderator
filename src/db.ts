@@ -212,6 +212,24 @@ export function getMentionRules(db: Database, community: number) {
     return query.all(community) as Mention[];
 }
 
+//Checks whether a user is whitelisted for a certain community
+export function isWhitelisted(db: Database, actorId: string, community: number) {
+    const query = db.prepare(`
+    SELECT user_actor_id
+    FROM automod_exception
+    INNER JOIN automod_community ON automod_exception.community_id = automod_community.id
+    WHERE automod_community.id = ?
+    `);
+
+    const users = query.all(community) as { user_actor_id: string }[];
+
+    for (const user of users) {
+        if (user.user_actor_id === actorId) return true;
+    }
+
+    return false;
+}
+
 /*  UTILITY  */
 
 //false -> 0; true -> 1. Just Javascript being Javascript

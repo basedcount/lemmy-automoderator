@@ -4,7 +4,7 @@ import Database from 'better-sqlite3';
 import {
     setUpDb, addCommunity, getCommunity,
     addPostRule, addCommentRule, addMentionRule, addExceptionRule,
-    getPostRules, getCommentRules, getMentionRules
+    getPostRules, getCommentRules, getMentionRules, isWhitelisted
 } from './db';
 import { parse } from './parser';
 
@@ -114,7 +114,7 @@ const bot = new LemmyBot({
         },
 
         mention: async ({
-            mentionView: { creator: { id }, community: { id: communityId }, comment: { content, id: commentId }, post: { id: postId } },
+            mentionView: { creator: { id, name: userName }, community: { id: communityId, name: communityName }, comment: { content, id: commentId }, post: { id: postId } },
             botActions: { createComment, featurePost, lockPost, isCommunityMod },
             preventReprocess
         }) => {
@@ -126,8 +126,12 @@ const bot = new LemmyBot({
                 if (content.includes(rule.command)) {
                     if (rule.action === 'lock') {
                         lockPost({ locked: true, post_id: postId });
+                        console.log(`Received lock request in c/${communityName} by ${userName}`);
+
                     } else if (rule.action === 'pin') {
                         featurePost({ feature_type: 'Community', featured: true, post_id: postId });
+                        console.log(`Received pin request in c/${communityName} by ${userName}`);
+
                     }
 
                     if (rule.message !== null) {
@@ -144,7 +148,7 @@ const bot = new LemmyBot({
         comment: async ({
             commentView: {
                 comment: { id, content: body },
-                community: { id: communityId },
+                community: { id: communityId, name: communityName },
                 post: { id: postId },
                 creator: { actor_id: actorId, id: personId }
             },
@@ -162,6 +166,8 @@ const bot = new LemmyBot({
                         createComment({ post_id: postId, content: rule.message });
                     }
 
+                    console.log(`Removing comment in c/${communityName} by ${actorId}. Reason: ${rule.removal_reason}`);
+
                     break;
                 } else if (rule.type === 'regex' && (rule.match as RegExp).test(body)) {
                     removeComment({ comment_id: id, reason: rule.removal_reason !== null ? rule.removal_reason : undefined });
@@ -169,6 +175,8 @@ const bot = new LemmyBot({
                     if (rule.message !== null) {
                         createComment({ post_id: postId, content: rule.message });
                     }
+
+                    console.log(`Removing comment in c/${communityName} by ${actorId}. Reason: ${rule.removal_reason}`);
 
                     break;
                 }
@@ -180,7 +188,7 @@ const bot = new LemmyBot({
         post: async ({
             postView: {
                 post: { id, body, name: title, url },
-                community: { id: communityId },
+                community: { id: communityId, name: communityName },
                 creator: { actor_id: actorId, id: personId }
             },
             botActions: { createComment, removePost, isCommunityMod },
@@ -205,6 +213,8 @@ const bot = new LemmyBot({
                             createComment({ post_id: id, content: rule.message });
                         }
 
+                        console.log(`Removing post in c/${communityName} by ${actorId}. Reason: ${rule.removal_reason}`);
+
                         break;
                     } else if (rule.type === 'regex' && (rule.match as RegExp).test(field)) {
                         removePost({ post_id: id, reason: rule.removal_reason !== null ? rule.removal_reason : undefined });
@@ -212,6 +222,8 @@ const bot = new LemmyBot({
                         if (rule.message !== null) {
                             createComment({ post_id: id, content: rule.message });
                         }
+
+                        console.log(`Removing post in c/${communityName} by ${actorId}. Reason: ${rule.removal_reason}`);
 
                         break;
                     }
@@ -221,18 +233,36 @@ const bot = new LemmyBot({
             preventReprocess();
         },
 
-        //Not really sure how and if these two can be handled
-        //I probably can't count reports, but I can automatically approve anything posted by whitelisted users
         commentReport: async ({
-
+            reportView: { creator: reportCreator, comment_creator: commentCreator, comment_report: report, community },
+            botActions: { resolveCommentReport },
+            preventReprocess
         }) => {
+            const whitelisted = isWhitelisted(db, commentCreator.actor_id, community.id);
 
+            if (whitelisted) {
+                await resolveCommentReport(report.id);
+
+                console.log(`Resolving report to comment by whitelisted user ${commentCreator.actor_id} in c/${community.name}. Reported by ${reportCreator.actor_id}`);
+            }
+
+            preventReprocess();
         },
 
         postReport: async ({
-
+            reportView: { creator: reportCreator, post_creator: postCreator, post_report: report, community },
+            botActions: { resolvePostReport },
+            preventReprocess
         }) => {
+            const whitelisted = isWhitelisted(db, postCreator.actor_id, community.id);
 
+            if (whitelisted) {
+                await resolvePostReport(report.id);
+
+                console.log(`Resolving report to post by whitelisted user ${postCreator.actor_id} in c/${community.name}. Reported by ${reportCreator.actor_id}`);
+            }
+
+            preventReprocess();
         },
     },
 });
