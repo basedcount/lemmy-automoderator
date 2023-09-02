@@ -44,7 +44,7 @@ export interface PostJson extends Post {
     field: "title" | "body" | "link"
     match: string
     type: "exact" | "regex"
-    whitelist: boolean
+    whitelist_exempt: boolean
     mod_exempt: boolean
     message: string | null
     removal_reason: string | null
@@ -55,7 +55,7 @@ export interface CommentJson extends Comment {
     community: string
     match: string
     type: "exact" | "regex"
-    whitelist: boolean
+    whitelist_exempt: boolean
     mod_exempt: boolean
     message: string | null
     removal_reason: string | null

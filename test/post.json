@@ -5,7 +5,7 @@
     "field": "link",
     "type": "exact",
     "match": "unflaired",
-    "whitelist": false,
+    "whitelist_exempt": false,
     "mod_exempt": false,
     "message": "I told you, you can talk about the unflaired",
     "removal_reason": "test"

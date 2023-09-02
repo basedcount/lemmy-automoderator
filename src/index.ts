@@ -239,37 +239,39 @@ const bot = new LemmyBot({
             preventReprocess();
         },
 
-        commentReport: async ({
-            reportView: { creator: reportCreator, comment_creator: commentCreator, comment_report: report, community },
-            botActions: { resolveCommentReport },
-            preventReprocess
-        }) => {
-            const whitelisted = isWhitelisted(db, commentCreator.actor_id, community.id);
+        //This doesn't work
+        
+        // commentReport: async ({
+        //     reportView: { creator: reportCreator, comment_creator: commentCreator, comment_report: report, community },
+        //     botActions: { resolveCommentReport },
+        //     preventReprocess
+        // }) => {
+        //     const whitelisted = isWhitelisted(db, commentCreator.actor_id, community.id);
 
-            if (whitelisted) {
-                await resolveCommentReport(report.id);
+        //     if (whitelisted) {
+        //         await resolveCommentReport(report.id);
 
-                console.log(`Resolving report to comment by whitelisted user ${commentCreator.actor_id} in c/${community.name}. Reported by ${reportCreator.actor_id}`);
-            }
+        //         console.log(`Resolving report to comment by whitelisted user ${commentCreator.actor_id} in c/${community.name}. Reported by ${reportCreator.actor_id}`);
+        //     }
 
-            preventReprocess();
-        },
+        //     preventReprocess();
+        // },
 
-        postReport: async ({
-            reportView: { creator: reportCreator, post_creator: postCreator, post_report: report, community },
-            botActions: { resolvePostReport },
-            preventReprocess
-        }) => {
-            const whitelisted = isWhitelisted(db, postCreator.actor_id, community.id);
+        // postReport: async ({
+        //     reportView: { creator: reportCreator, post_creator: postCreator, post_report: report, community },
+        //     botActions: { resolvePostReport },
+        //     preventReprocess
+        // }) => {
+        //     const whitelisted = isWhitelisted(db, postCreator.actor_id, community.id);
 
-            if (whitelisted) {
-                await resolvePostReport(report.id);
+        //     if (whitelisted) {
+        //         await resolvePostReport(report.id);
 
-                console.log(`Resolving report to post by whitelisted user ${postCreator.actor_id} in c/${community.name}. Reported by ${reportCreator.actor_id}`);
-            }
+        //         console.log(`Resolving report to post by whitelisted user ${postCreator.actor_id} in c/${community.name}. Reported by ${reportCreator.actor_id}`);
+        //     }
 
-            preventReprocess();
-        },
+        //     preventReprocess();
+        // },
     },
 });
 

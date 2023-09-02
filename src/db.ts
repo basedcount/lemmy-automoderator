@@ -86,13 +86,13 @@ export function addCommunity(db: Database, name: string, id: number) {
 export function addPostRule(db: Database, rule: PostJson, community: number) {
     const query = db.prepare(`INSERT INTO automod_post (field,match,type,community_id,whitelist_exempt,mod_exempt,message,removal_reason) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
 
-    query.run(rule.field, rule.match, rule.type, community, bool2int(rule.whitelist), bool2int(rule.mod_exempt), rule.message, rule.removal_reason);
+    query.run(rule.field, rule.match, rule.type, community, bool2int(rule.whitelist_exempt), bool2int(rule.mod_exempt), rule.message, rule.removal_reason);
 }
 
 export function addCommentRule(db: Database, rule: CommentJson, community: number) {
     const query = db.prepare(`INSERT INTO automod_comment (match,type,community_id,whitelist_exempt,mod_exempt,message,removal_reason) VALUES (?, ?, ?, ?, ?, ?, ?)`);
 
-    query.run(rule.match, rule.type, community, bool2int(rule.whitelist), bool2int(rule.mod_exempt), rule.message, rule.removal_reason);
+    query.run(rule.match, rule.type, community, bool2int(rule.whitelist_exempt), bool2int(rule.mod_exempt), rule.message, rule.removal_reason);
 }
 
 export function addMentionRule(db: Database, rule: MentionJson, community: number) {

@@ -4,7 +4,7 @@
     "community": "test",
     "match": "pill",
     "type": "regex",
-    "whitelist": false,
+    "whitelist_exempt": false,
     "mod_exempt": false,
     "message": "I told you, don't talk about pills",
     "removal_reason": "test"

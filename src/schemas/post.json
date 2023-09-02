@@ -27,7 +27,7 @@
                 "regex"
             ]
         },
-        "whitelist": {
+        "whitelist_exempt": {
             "type": "boolean"
         },
         "mod_exempt": {
@@ -52,7 +52,7 @@
         "field",
         "match",
         "type",
-        "whitelist",
+        "whitelist_exempt",
         "mod_exempt",
         "message",
         "removal_reason"
