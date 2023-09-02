@@ -1,12 +1,12 @@
 {
     "$schema": "https://raw.githubusercontent.com/ornato-t/lemmy-automoderator/master/src/schemas/post.json",
     "rule": "post",
-    "community": "announcements",
-    "field": "title",
+    "community": "test",
+    "field": "link",
     "type": "exact",
-    "match": "spoiling my favourite anime",
-    "whitelist": true,
+    "match": "unflaired",
+    "whitelist": false,
     "mod_exempt": false,
-    "message": "Heh",
-    "removal_reason": "Heheh"
+    "message": "I told you, you can talk about the unflaired",
+    "removal_reason": "test"
 }

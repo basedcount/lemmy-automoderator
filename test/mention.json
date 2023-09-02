@@ -1,8 +1,8 @@
 {
     "$schema": "https://raw.githubusercontent.com/ornato-t/lemmy-automoderator/master/src/schemas/mention.json",
     "rule": "mention",
-    "community": "announcements",
-    "command": "!pin",
-    "action": "pin",
-    "message": "fuck off"
+    "community": "test",
+    "command": "!lock",
+    "action": "lock",
+    "message": "As requested, I am locking this message"
 }

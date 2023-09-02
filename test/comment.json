@@ -1,11 +1,11 @@
 {
     "$schema": "https://raw.githubusercontent.com/ornato-t/lemmy-automoderator/master/src/schemas/comment.json",
     "rule": "comment",
-    "community": "announcements",
-    "match": "ur ugly",
-    "type": "exact",
+    "community": "test",
+    "match": "pill",
+    "type": "regex",
     "whitelist": false,
-    "mod_exempt": true,
-    "message": "The RoboJanny doesn't like you",
-    "removal_reason": "arbitrary"
+    "mod_exempt": false,
+    "message": "I told you, don't talk about pills",
+    "removal_reason": "test"
 }

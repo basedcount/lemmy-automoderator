@@ -12,6 +12,7 @@ const USERNAME = process.env.LEMMY_USERNAME || '';
 const PASSWORD = process.env.LEMMY_PASSWORD || '';
 const INSTANCE = process.env.LEMMY_INSTANCE || '';
 const DATABASE = 'db.sqlite3';
+const OWN_ACTOR_ID = `https://${INSTANCE}/u/${USERNAME}`;
 
 let ownId: number;
 
@@ -114,16 +115,23 @@ const bot = new LemmyBot({
         },
 
         mention: async ({
-            mentionView: { creator: { id, name: userName }, community: { id: communityId, name: communityName }, comment: { content, id: commentId }, post: { id: postId } },
+            mentionView: { creator: { id, name: userName, actor_id: actorId }, community: { id: communityId, name: communityName }, comment: { content, id: commentId }, post: { id: postId } },
             botActions: { createComment, featurePost, lockPost, isCommunityMod },
             preventReprocess
         }) => {
+            if (actorId === OWN_ACTOR_ID) return;
             if (!await isCommunityMod({ person_id: id, community_id: communityId })) return;
 
             const rules = getMentionRules(db, communityId);
 
             for (const rule of rules) {
                 if (content.includes(rule.command)) {
+                    if (rule.message !== null) {
+                        try {
+                            await createComment({ content: rule.message, post_id: postId, parent_id: commentId });
+                        } catch (e) { console.log(e) }
+                    }
+
                     if (rule.action === 'lock') {
                         lockPost({ locked: true, post_id: postId });
                         console.log(`Received lock request in c/${communityName} by ${userName}`);
@@ -132,10 +140,6 @@ const bot = new LemmyBot({
                         featurePost({ feature_type: 'Community', featured: true, post_id: postId });
                         console.log(`Received pin request in c/${communityName} by ${userName}`);
 
-                    }
-
-                    if (rule.message !== null) {
-                        await createComment({ content: rule.message, post_id: postId, parent_id: commentId });
                     }
 
                     break;
@@ -155,6 +159,7 @@ const bot = new LemmyBot({
             botActions: { createComment, removeComment, isCommunityMod },
             preventReprocess
         }) => {
+            if (actorId === OWN_ACTOR_ID) return;
             const isPosterMod = await isCommunityMod({ community_id: communityId, person_id: personId });
             const rules = getCommentRules(db, actorId, communityId, isPosterMod);
 
@@ -163,17 +168,17 @@ const bot = new LemmyBot({
                     removeComment({ comment_id: id, reason: rule.removal_reason !== null ? rule.removal_reason : undefined });
 
                     if (rule.message !== null) {
-                        createComment({ post_id: postId, content: rule.message });
+                        createComment({ post_id: postId, content: rule.message, parent_id: id });
                     }
 
                     console.log(`Removing comment in c/${communityName} by ${actorId}. Reason: ${rule.removal_reason}`);
 
                     break;
-                } else if (rule.type === 'regex' && (rule.match as RegExp).test(body)) {
+                } else if (rule.type === 'regex' && new RegExp(rule.match).test(body)) {
                     removeComment({ comment_id: id, reason: rule.removal_reason !== null ? rule.removal_reason : undefined });
 
                     if (rule.message !== null) {
-                        createComment({ post_id: postId, content: rule.message });
+                        createComment({ post_id: postId, content: rule.message, parent_id: id });
                     }
 
                     console.log(`Removing comment in c/${communityName} by ${actorId}. Reason: ${rule.removal_reason}`);
@@ -194,6 +199,7 @@ const bot = new LemmyBot({
             botActions: { createComment, removePost, isCommunityMod },
             preventReprocess
         }) => {
+            if (actorId === OWN_ACTOR_ID) return;
             const isPosterMod = await isCommunityMod({ community_id: communityId, person_id: personId });
             const rules = getPostRules(db, actorId, communityId, isPosterMod);
 
@@ -207,21 +213,21 @@ const bot = new LemmyBot({
 
                 if (field !== undefined) {
                     if (rule.type === 'exact' && field.includes(rule.match as string)) {
-                        removePost({ post_id: id, reason: rule.removal_reason !== null ? rule.removal_reason : undefined });
-
                         if (rule.message !== null) {
-                            createComment({ post_id: id, content: rule.message });
+                            await createComment({ post_id: id, content: rule.message });
                         }
+
+                        removePost({ post_id: id, reason: rule.removal_reason !== null ? rule.removal_reason : undefined });
 
                         console.log(`Removing post in c/${communityName} by ${actorId}. Reason: ${rule.removal_reason}`);
 
                         break;
-                    } else if (rule.type === 'regex' && (rule.match as RegExp).test(field)) {
-                        removePost({ post_id: id, reason: rule.removal_reason !== null ? rule.removal_reason : undefined });
-
+                    } else if (rule.type === 'regex' && new RegExp(rule.match).test(field)) {
                         if (rule.message !== null) {
-                            createComment({ post_id: id, content: rule.message });
+                            await createComment({ post_id: id, content: rule.message });
                         }
+
+                        removePost({ post_id: id, reason: rule.removal_reason !== null ? rule.removal_reason : undefined });
 
                         console.log(`Removing post in c/${communityName} by ${actorId}. Reason: ${rule.removal_reason}`);
 

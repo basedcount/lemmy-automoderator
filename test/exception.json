@@ -1,6 +1,6 @@
 {
     "$schema": "https://raw.githubusercontent.com/ornato-t/lemmy-automoderator/master/src/schemas/exception.json",
     "rule": "exception",
-    "user_actor_id": "Nerd02",
-    "community": "announcements"
+    "user_actor_id": "https://lemmy.basedcount.com/u/flairchange_bot",
+    "community": "test"
 }
