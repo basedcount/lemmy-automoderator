@@ -1,4 +1,4 @@
-import Ajv from 'ajv';
+import Ajv, { ValidateFunction } from 'ajv';
 import addFormats from 'ajv-formats';
 import type { Post, Comment, Mention } from './db'
 
@@ -9,7 +9,7 @@ import mentionSchema from './schemas/mention.json';
 import exceptionSchema from './schemas/exception.json';
 
 // Parses a JSON document against the known schemas, returns the apropriate object
-export function parse(data: string) {
+export function parse(data: string): Array<PostJson | CommentJson | MentionJson | ExceptionJson | null> {
     const ajv = new Ajv();
     addFormats(ajv);
 
@@ -18,22 +18,39 @@ export function parse(data: string) {
     const validateMention = ajv.compile(mentionSchema);
     const validateException = ajv.compile(exceptionSchema);
 
-    const jsonData = JSON.parse(data);
+    const jsonData = JSON.parse(data) as any | any[];
 
-    if (validatePost(jsonData)) {
-        return jsonData as unknown as PostJson;
+    if (Array.isArray(jsonData)) {
+        const output = new Array<PostJson | CommentJson | MentionJson | ExceptionJson | null>();
 
-    } else if (validateComment(jsonData)) {
-        return jsonData as unknown as CommentJson;
+        for (const rule of jsonData) {
+            output.push(validate(rule, validatePost, validateComment, validateMention, validateException));
+        }
 
-    } else if (validateMention(jsonData)) {
-        return jsonData as unknown as MentionJson;
-
-    } else if (validateException(jsonData)) {
-        return jsonData as unknown as ExceptionJson;
+        return output;
 
     } else {
-        throw new Error('invalid_schema');
+        return [validate(jsonData, validatePost, validateComment, validateMention, validateException)];
+
+    }
+}
+
+// Validate a single JSON rule, return the parsed object or an error if the schema doesn't match
+function validate(data: any, validatePost: ValidateFunction, validateComment: ValidateFunction, validateMention: ValidateFunction, validateException: ValidateFunction): PostJson | CommentJson | MentionJson | ExceptionJson | null {
+    if (validatePost(data)) {
+        return data as unknown as PostJson;
+
+    } else if (validateComment(data)) {
+        return data as unknown as CommentJson;
+
+    } else if (validateMention(data)) {
+        return data as unknown as MentionJson;
+
+    } else if (validateException(data)) {
+        return data as unknown as ExceptionJson;
+
+    } else {
+        return null;
 
     }
 }

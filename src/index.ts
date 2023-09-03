@@ -23,6 +23,12 @@ if (USERNAME === '' || PASSWORD === '' || INSTANCE === '') {
     throw new Error('Undefined username, password or instance. Check your .env file.');
 }
 
+/*
+    TODO:
+    - change the handling of post.field, allow the input of multiple fields separated by a '+' sign. Add wrapper function, separate fields, call already existing handler for each field. Don't forget to edit TS interface (only JSON)
+    - instead of sending a message for each error, save in array (remap to [number: string]) and include in final report
+*/
+
 const bot = new LemmyBot({
     credentials: { username: USERNAME, password: PASSWORD },
     connection: { secondsBetweenPolls: 2 },
@@ -37,77 +43,103 @@ const bot = new LemmyBot({
         }) => {
             try {
                 const userInput = parse(content);
-                const communityName = userInput.community;
-                const communityId = await getCommunityId({ instance: INSTANCE, name: communityName });
+                const errors = new Array<number>();
+                let i = 1;
+                for (const rule of userInput) {
 
-                /*  PRELIMINARY CHECKS  */
+                    //Check for schema matching
+                    if (rule === null) {
+                        errors.push(i);
+                        i++;
+                        continue;
+                    }
 
-                //Does the community exist?
-                if (communityId == null) {
-                    await sendPrivateMessage({ content: `No community named "${communityName}" was found `, recipient_id: creatorId });
-                    console.log(`Denied: Unknown community: c/${communityName}`);
-                    return;
+                    const communityName = rule.community;
+                    const communityId = await getCommunityId({ instance: INSTANCE, name: communityName });
+
+                    /*  PRELIMINARY CHECKS  */
+
+                    //Does the community exist?
+                    if (communityId == null) {
+                        await sendPrivateMessage({ content: `No community named "${communityName}" was found `, recipient_id: creatorId });
+                        console.log(`Denied: Unknown community: c/${communityName}`);
+                        i++;
+                        continue;
+                    }
+
+                    //Is the requester a moderator in the community?
+                    if (!await isCommunityMod({ person_id: creatorId, community_id: communityId })) {
+                        await sendPrivateMessage({ content: `You aren't a moderator in "${communityName}". Only moderators can edit a community's AutoMod configuration.`, recipient_id: creatorId });
+                        console.log(`Denied: User u/${name} is not a mod in c/${communityName}`);
+                        i++;
+                        continue;
+                    }
+
+                    //Only runs on startup, fetch the bot's ID
+                    if (ownId === undefined) {
+                        ownId = await getUserId({ instance: INSTANCE, name: USERNAME }) as number;
+                    }
+
+                    /*
+                        NOTE:
+                        Currently there's no way of making an account a mod if it comments in the target community,
+                        so this check makes little sense.
+                        In the future, before failing, this should cause the bot to comment under the top post and reply with a link to said comment.
+                    */
+
+                    //Is the bot a moderator in the community?
+                    if (!await isCommunityMod({ person_id: ownId, community_id: communityId })) {
+                        await sendPrivateMessage({ content: `AutoMod is not a moderator in "${communityName}". AutoMod can only be enabled in communities where it is a mod.`, recipient_id: creatorId });
+                        console.log(`Denied: AutoMod not activated in c/${communityName}`);
+                        i++;
+                        continue;
+                    }
+
+                    //Check if the bot is already monitoring the community, if not add it to the database
+                    let communityInternalId = getCommunity(db, communityName, communityId);
+                    if (communityInternalId === null) {
+                        communityInternalId = addCommunity(db, communityName, communityId);
+                    }
+
+                    /*  CHECKS PASSED, CONFIGURATION CAN BE INSERTED  */
+
+                    if (rule.rule === 'post') {
+                        addPostRule(db, rule, communityInternalId);
+                        console.log(`Success: post rule in c/${communityName}`);
+                    } else if (rule.rule === 'comment') {
+                        addCommentRule(db, rule, communityInternalId);
+                        console.log(`Success: comment rule in c/${communityName}`);
+                    } else if (rule.rule === 'mention') {
+                        addMentionRule(db, rule, communityInternalId);
+                        console.log(`Success: mention rule in c/${communityName}`);
+                    } else if (rule.rule === 'exception') {
+                        addExceptionRule(db, rule, communityInternalId);
+                        console.log(`Success: exception rule in c/${communityName}`);
+                    }
                 }
 
-                //Is the requester a moderator in the community?
-                if (!await isCommunityMod({ person_id: creatorId, community_id: communityId })) {
-                    await sendPrivateMessage({ content: `You aren't a moderator in "${communityName}". Only moderators can edit a community's AutoMod configuration.`, recipient_id: creatorId });
-                    console.log(`Denied: User u/${name} is not a mod in c/${communityName}`);
-                    return;
-                }
+                //Report results to user with a PM
+                if (errors.length === 0 && userInput.length === 1) {
+                    await sendPrivateMessage({ content: 'Rule successfully added.', recipient_id: creatorId });
 
-                //Only runs on startup, fetch the bot's ID
-                if (ownId === undefined) {
-                    ownId = await getUserId({ instance: INSTANCE, name: USERNAME }) as number;
-                }
+                } else if (errors.length === 0) {
+                    await sendPrivateMessage({ content: 'Rules successfully added.', recipient_id: creatorId });
 
-                /*
-                    NOTE:
-                    Currently there's no way of making an account a mod if it comments in the target community,
-                    so this check makes little sense.
-                    In the future, before failing, this should cause the bot to comment under the top post and reply with a link to said comment.
-                */
+                } else if (errors.length === userInput.length) {
+                    if (userInput.length === 1) {
+                        await sendPrivateMessage({ content: 'Error with input: the provided configuration is invalid. Make sure to consult the bot\'s documentation to avoid any mistakes.', recipient_id: creatorId });
 
-                //Is the bot a moderator in the community?
-                if (!await isCommunityMod({ person_id: ownId, community_id: communityId })) {
-                    await sendPrivateMessage({ content: `AutoMod is not a moderator in "${communityName}". AutoMod can only be enabled in communities where it is a mod.`, recipient_id: creatorId });
-                    console.log(`Denied: AutoMod not activated in c/${communityName}`);
-                    return;
-                }
+                    } else {
+                        await sendPrivateMessage({ content: 'Errors with input: all of the provided configurations are invalid. Make sure to consult the bot\'s documentation to avoid any mistakes.', recipient_id: creatorId });
 
-                //Check if the bot is already monitoring the community, if not add it to the database
-                let communityInternalId = getCommunity(db, communityName, communityId);
-                if (communityInternalId === null) {
-                    communityInternalId = addCommunity(db, communityName, communityId);
-                }
-
-                /*  CHECKS PASSED, CONFIGURATION CAN BE INSERTED  */
-
-                if (userInput.rule === 'post') {
-                    addPostRule(db, userInput, communityInternalId);
-                    console.log(`Success: post rule in c/${communityName}`);
-                } else if (userInput.rule === 'comment') {
-                    addCommentRule(db, userInput, communityInternalId);
-                    console.log(`Success: comment rule in c/${communityName}`);
-                } else if (userInput.rule === 'mention') {
-                    addMentionRule(db, userInput, communityInternalId);
-                    console.log(`Success: mention rule in c/${communityName}`);
-                } else if (userInput.rule === 'exception') {
-                    addExceptionRule(db, userInput, communityInternalId);
-                    console.log(`Success: exception rule in c/${communityName}`);
-                }
-
-                await sendPrivateMessage({ content: 'Rule successfully added.', recipient_id: creatorId });
-            } catch (e) {
-                if (e === 'invalid_schema') {
-                    await sendPrivateMessage({ content: 'The provided configuration is invalid. Make sure to consult the bot\'s documentation to avoid any mistakes.', recipient_id: creatorId });
-                    console.log('Error: user submitted an invalid schema');
-
+                    }
                 } else {
-                    await sendPrivateMessage({ content: 'Error while processing AutoMod configuration. Please try again.', recipient_id: creatorId });
-                    console.log(e);
+                    await sendPrivateMessage({ content: `Rulespartially added. Among the provided configurations, the following were invalid: [${errors.join(', ')}].  Make sure to consult the bot\'s documentation to avoid any mistakes. \n\nThe remaining rules were succesfully added.`, recipient_id: creatorId });
 
                 }
+            } catch (e) {
+                await sendPrivateMessage({ content: `Error while processing AutoMod configuration, please try again. If the issue persists, consider reporting this to the developer.\n\nError code: ${e}`, recipient_id: creatorId });
+                console.log(e);
 
             } finally {
                 preventReprocess()
@@ -240,7 +272,7 @@ const bot = new LemmyBot({
         },
 
         //This doesn't work
-        
+
         // commentReport: async ({
         //     reportView: { creator: reportCreator, comment_creator: commentCreator, comment_report: report, community },
         //     botActions: { resolveCommentReport },
