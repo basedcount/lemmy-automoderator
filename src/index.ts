@@ -26,7 +26,6 @@ if (USERNAME === '' || PASSWORD === '' || INSTANCE === '') {
 /*
     TODO:
     - change the handling of post.field, allow the input of multiple fields separated by a '+' sign. Add wrapper function, separate fields, call already existing handler for each field. Don't forget to edit TS interface (only JSON)
-    - instead of sending a message for each error, save in array (remap to [number: string]) and include in final report
 */
 
 const bot = new LemmyBot({
@@ -43,14 +42,13 @@ const bot = new LemmyBot({
         }) => {
             try {
                 const userInput = parse(content);
-                const errors = new Array<number>();
+                const errors = new Map<number, string>();
                 let i = 1;
                 for (const rule of userInput) {
 
                     //Check for schema matching
                     if (rule === null) {
-                        errors.push(i);
-                        i++;
+                        errors.set(i++, 'Incorrect schema. The provided configuration doesn\'t match any known schema.');
                         continue;
                     }
 
@@ -61,17 +59,15 @@ const bot = new LemmyBot({
 
                     //Does the community exist?
                     if (communityId == null) {
-                        await sendPrivateMessage({ content: `No community named "${communityName}" was found `, recipient_id: creatorId });
+                        errors.set(i++, `No community named "${communityName}" was found.`);
                         console.log(`Denied: Unknown community: c/${communityName}`);
-                        i++;
                         continue;
                     }
 
                     //Is the requester a moderator in the community?
                     if (!await isCommunityMod({ person_id: creatorId, community_id: communityId })) {
-                        await sendPrivateMessage({ content: `You aren't a moderator in "${communityName}". Only moderators can edit a community's AutoMod configuration.`, recipient_id: creatorId });
+                        errors.set(i++, `You aren't a moderator in "${communityName}". Only moderators can edit a community's AutoMod configuration.`);
                         console.log(`Denied: User u/${name} is not a mod in c/${communityName}`);
-                        i++;
                         continue;
                     }
 
@@ -89,9 +85,8 @@ const bot = new LemmyBot({
 
                     //Is the bot a moderator in the community?
                     if (!await isCommunityMod({ person_id: ownId, community_id: communityId })) {
-                        await sendPrivateMessage({ content: `AutoMod is not a moderator in "${communityName}". AutoMod can only be enabled in communities where it is a mod.`, recipient_id: creatorId });
+                        errors.set(i++, `AutoMod is not a moderator in "${communityName}". AutoMod can only be enabled in communities where it is a mod.`);
                         console.log(`Denied: AutoMod not activated in c/${communityName}`);
-                        i++;
                         continue;
                     }
 
@@ -119,22 +114,36 @@ const bot = new LemmyBot({
                 }
 
                 //Report results to user with a PM
-                if (errors.length === 0 && userInput.length === 1) {
+                if (errors.size === 0 && userInput.length === 1) {
                     await sendPrivateMessage({ content: 'Rule successfully added.', recipient_id: creatorId });
 
-                } else if (errors.length === 0) {
+                } else if (errors.size === 0) {
                     await sendPrivateMessage({ content: 'Rules successfully added.', recipient_id: creatorId });
 
-                } else if (errors.length === userInput.length) {
+                } else if (errors.size === userInput.length) {
                     if (userInput.length === 1) {
-                        await sendPrivateMessage({ content: 'Error with input: the provided configuration is invalid. Make sure to consult the bot\'s documentation to avoid any mistakes.', recipient_id: creatorId });
+                        const errorMessage = `\n\nError:\n\n- ${errors.entries().next().value}`;
+
+                        await sendPrivateMessage({ content: 'The rule wasn\'t added, the provided configuration is invalid. Make sure to consult the bot\'s documentation to avoid any mistakes.' + errorMessage, recipient_id: creatorId });
 
                     } else {
-                        await sendPrivateMessage({ content: 'Errors with input: all of the provided configurations are invalid. Make sure to consult the bot\'s documentation to avoid any mistakes.', recipient_id: creatorId });
+                        let errorMessage = `\n\nErrors:`;
+
+                        for (const [key, value] of errors) {
+                            errorMessage += `\n\n- Rule ${key}: ${value}`;
+                        }
+
+                        await sendPrivateMessage({ content: 'No rules were added, all of the provided configurations are invalid. Make sure to consult the bot\'s documentation to avoid any mistakes.' + errorMessage, recipient_id: creatorId });
 
                     }
                 } else {
-                    await sendPrivateMessage({ content: `Rulespartially added. Among the provided configurations, the following were invalid: [${errors.join(', ')}].  Make sure to consult the bot\'s documentation to avoid any mistakes. \n\nThe remaining rules were succesfully added.`, recipient_id: creatorId });
+                    let errorMessage = `\n\nErrors:`;
+
+                    for (const [key, value] of errors) {
+                        errorMessage += `\n\n- Rule ${key}: ${value}`;
+                    }
+
+                    await sendPrivateMessage({ content: `Rules partially added. Some of the provided configurations were invalid.  Make sure to consult the bot\'s documentation to avoid any mistakes. \n\nThe remaining rules were succesfully added.` + errorMessage, recipient_id: creatorId });
 
                 }
             } catch (e) {
