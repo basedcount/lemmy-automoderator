@@ -111,6 +111,8 @@ const bot = new LemmyBot({
                         addExceptionRule(db, rule, communityInternalId);
                         console.log(`Success: exception rule in c/${communityName}`);
                     }
+
+                    i++;
                 }
 
                 //Report results to user with a PM
@@ -122,7 +124,11 @@ const bot = new LemmyBot({
 
                 } else if (errors.size === userInput.length) {
                     if (userInput.length === 1) {
-                        const errorMessage = `\n\nError:\n\n- ${errors.entries().next().value}`;
+                        let errorMessage = `\n\nError: `;
+
+                        for (const [key, value] of errors) {
+                            errorMessage += `${value}`;
+                        }
 
                         await sendPrivateMessage({ content: 'The rule wasn\'t added, the provided configuration is invalid. Make sure to consult the bot\'s documentation to avoid any mistakes.' + errorMessage, recipient_id: creatorId });
 
