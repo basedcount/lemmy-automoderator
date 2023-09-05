@@ -11,6 +11,7 @@ import { parse } from './parser';
 const USERNAME = process.env.LEMMY_USERNAME || '';
 const PASSWORD = process.env.LEMMY_PASSWORD || '';
 const INSTANCE = process.env.LEMMY_INSTANCE || '';
+const WEBHOOK = process.env.DISCORD_WEBHOOK_URL;
 const DATABASE = 'db.sqlite3';
 const OWN_ACTOR_ID = `https://${INSTANCE}/u/${USERNAME}`;
 
@@ -279,6 +280,46 @@ const bot = new LemmyBot({
             }
 
             preventReprocess();
+        },
+
+        //Send a ping to a Discord webhook upon receiving a subscription application. Note: this requires the automod to be an admin
+        registrationApplication: async ({
+            applicationView: { creator, registration_application: application },
+        }) => {
+            if (WEBHOOK === undefined) return;
+
+            console.log('Sending webhook for registration application');
+
+            //Trim application text down to MAX_MESSAGE characters at most
+            const MAX_MESSAGE = 750;
+            let answer = application.answer;
+            if (answer.length > MAX_MESSAGE) {
+                answer = application.answer.substring(0, MAX_MESSAGE);
+                answer += '...';
+            }
+
+            const body = {
+                username: creator.name,
+                embeds: [{
+                    color: 4241744,
+                    title: 'New registration application!',
+                    description: answer,
+                    url: `https://${INSTANCE}/registration_applications`,
+                    fields: []
+                }],
+            };
+
+            try {
+                const res = await fetch(WEBHOOK, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                });
+
+                if (!res.ok) throw new Error(res.status + ' ' + res.statusText);
+            } catch (e) {
+                console.log(e);
+            }
         },
 
         //This doesn't work
