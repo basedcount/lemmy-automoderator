@@ -23,11 +23,6 @@ if (USERNAME === '' || PASSWORD === '' || INSTANCE === '') {
     throw new Error('Undefined username, password or instance. Check your .env file.');
 }
 
-/*
-    TODO:
-    - change the handling of post.field, allow the input of multiple fields separated by a '+' sign. Add wrapper function, separate fields, call already existing handler for each field. Don't forget to edit TS interface (only JSON)
-*/
-
 const bot = new LemmyBot({
     credentials: { username: USERNAME, password: PASSWORD },
     connection: { secondsBetweenPolls: 2 },

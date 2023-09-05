@@ -14,7 +14,19 @@
             "enum": [
                 "title",
                 "body",
-                "link"
+                "link",
+                "title+body",
+                "title+link",
+                "body+title",
+                "body+link",
+                "link+title",
+                "link+body",
+                "title+body+link",
+                "title+link+body",
+                "body+title+link",
+                "body+link+title",
+                "link+title+body",
+                "link+body+title"
             ]
         },
         "match": {

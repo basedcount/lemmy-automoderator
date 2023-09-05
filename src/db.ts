@@ -84,9 +84,36 @@ export function addCommunity(db: Database, name: string, id: number) {
 /*  CONFIGURATION SETTERS  */
 
 export function addPostRule(db: Database, rule: PostJson, community: number) {
-    const query = db.prepare(`INSERT INTO automod_post (field,match,type,community_id,whitelist_exempt,mod_exempt,message,removal_reason) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
+    const rules = new Array<PostJson>();
 
-    query.run(rule.field, rule.match, rule.type, community, bool2int(rule.whitelist_exempt), bool2int(rule.mod_exempt), rule.message, rule.removal_reason);
+    if (rule.field.includes('+')) { //Multiple fields, separated by + sign
+        const fields = rule.field.split('+') as Array<"title" | "body" | "link">;
+
+        for (const tmp of fields) {
+            const field = tmp as "title" | "body" | "link";     //TS workaround
+            console.log(tmp, field)
+
+            rules.push({
+                rule: 'post',
+                field: field,
+                community: rule.community,
+                match: rule.match,
+                message: rule.message,
+                mod_exempt: rule.mod_exempt,
+                removal_reason: rule.removal_reason,
+                type: rule.type,
+                whitelist_exempt: rule.whitelist_exempt,
+            })
+        }
+    } else {    //Single field
+        rules.push(rule);
+    }
+
+    for (const rule of rules) {
+        const query = db.prepare(`INSERT INTO automod_post (field,match,type,community_id,whitelist_exempt,mod_exempt,message,removal_reason) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
+
+        query.run(rule.field, rule.match, rule.type, community, bool2int(rule.whitelist_exempt), bool2int(rule.mod_exempt), rule.message, rule.removal_reason);
+    }
 }
 
 export function addCommentRule(db: Database, rule: CommentJson, community: number) {

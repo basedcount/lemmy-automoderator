@@ -1,6 +1,6 @@
 import Ajv, { ValidateFunction } from 'ajv';
 import addFormats from 'ajv-formats';
-import type { Post, Comment, Mention } from './db'
+import type { Comment, Mention } from './db'
 
 // Load schemas
 import postSchema from './schemas/post.json';
@@ -55,10 +55,10 @@ function validate(data: any, validatePost: ValidateFunction, validateComment: Va
     }
 }
 
-export interface PostJson extends Post {
+export interface PostJson {
     rule: "post"
     community: string
-    field: "title" | "body" | "link"
+    field: "title" | "body" | "link" | "title+body" | "title+link" | "body+title" | "body+link" | "link+title" | "link+body" | "title+body+link" | "title+link+body" | "body+title+link" | "body+link+title" | "link+title+body" | "link+body+title"
     match: string
     type: "exact" | "regex"
     whitelist_exempt: boolean
