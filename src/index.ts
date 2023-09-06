@@ -358,5 +358,9 @@ const bot = new LemmyBot({
     },
 });
 
-setUpDb(db);
-bot.start();
+try {
+    setUpDb(db);
+    bot.start();
+} catch (e) {
+    console.log(e);
+}
