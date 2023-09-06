@@ -129,6 +129,6 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
-/db.sqlite3
-/db.sqlite3-shm
-/db.sqlite3-wal
+/database/db.sqlite3
+/database/db.sqlite3-shm
+/database/db.sqlite3-wal

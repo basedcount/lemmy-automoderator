@@ -12,7 +12,7 @@ const USERNAME = process.env.LEMMY_USERNAME || '';
 const PASSWORD = process.env.LEMMY_PASSWORD || '';
 const INSTANCE = process.env.LEMMY_INSTANCE || '';
 const WEBHOOK = process.env.DISCORD_WEBHOOK_URL;
-const DATABASE = 'db.sqlite3';
+const DATABASE = './database/db.sqlite3';
 const OWN_ACTOR_ID = `https://${INSTANCE}/u/${USERNAME}`;
 
 let ownId: number;

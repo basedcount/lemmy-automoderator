@@ -1,0 +1,1 @@
+This directory will contain the Sqlite3 database for the AutoMod. Do not delete, or all configurations will be lost.
