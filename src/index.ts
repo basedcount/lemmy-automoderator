@@ -30,6 +30,8 @@ const bot = new LemmyBot({
     instance: INSTANCE,
     dbFile: DATABASE,
     federation: 'local',
+    enableLogs: true,
+    markAsBot: true,
     handlers: {
         privateMessage: async ({
             messageView: { private_message: { content }, creator: { id: creatorId, name } },
